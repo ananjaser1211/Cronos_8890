@@ -1171,11 +1171,11 @@ cifs_push_posix_locks(struct cifsFileInfo *cfile)
 	if (!flctx)
 		goto out;
 
-	spin_lock(&inode->i_lock);
+	spin_lock(&flctx->flc_lock);
 	list_for_each(el, &flctx->flc_posix) {
 		count++;
 	}
-	spin_unlock(&inode->i_lock);
+	spin_unlock(&flctx->flc_lock);
 
 	INIT_LIST_HEAD(&locks_to_send);
 
@@ -1194,7 +1194,7 @@ cifs_push_posix_locks(struct cifsFileInfo *cfile)
 	}
 
 	el = locks_to_send.next;
-	spin_lock(&inode->i_lock);
+	spin_lock(&flctx->flc_lock);
 	list_for_each_entry(flock, &flctx->flc_posix, fl_list) {
 		if (el == &locks_to_send) {
 			/*
@@ -1216,7 +1216,7 @@ cifs_push_posix_locks(struct cifsFileInfo *cfile)
 		lck->type = type;
 		lck->offset = flock->fl_start;
 	}
-	spin_unlock(&inode->i_lock);
+	spin_unlock(&flctx->flc_lock);
 
 	list_for_each_entry_safe(lck, tmp, &locks_to_send, llist) {
 		int stored_rc;
