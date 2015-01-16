@@ -195,14 +195,16 @@ int ceph_flock(struct file *file, int cmd, struct file_lock *fl)
 	return err;
 }
 
-/**
- * Must be called with lock_flocks() already held. Fills in the passed
- * counter variables, so you can prepare pagelist metadata before calling
- * ceph_encode_locks.
+/*
+ * Fills in the passed counter variables, so you can prepare pagelist metadata
+ * before calling ceph_encode_locks.
+ *
+ * FIXME: add counters to struct file_lock_context so we don't need to do this?
  */
 void ceph_count_locks(struct inode *inode, int *fcntl_count, int *flock_count)
 {
 	struct file_lock *lock;
+	struct file_lock_context *ctx;
 
 	*fcntl_count = 0;
 	*flock_count = 0;
@@ -210,7 +212,11 @@ void ceph_count_locks(struct inode *inode, int *fcntl_count, int *flock_count)
 	for (lock = inode->i_flock; lock != NULL; lock = lock->fl_next) {
 		if (lock->fl_flags & FL_POSIX)
 			++(*fcntl_count);
-		else if (lock->fl_flags & FL_FLOCK)
+	}
+
+	ctx = inode->i_flctx;
+	if (ctx) {
+		list_for_each_entry(lock, &ctx->flc_flock, fl_list)
 			++(*flock_count);
 	}
 	dout("counted %d flock locks and %d fcntl locks",
@@ -227,6 +233,7 @@ int ceph_encode_locks_to_buffer(struct inode *inode,
 				int num_fcntl_locks, int num_flock_locks)
 {
 	struct file_lock *lock;
+	struct file_lock_context *ctx;
 	int err = 0;
 	int seen_fcntl = 0;
 	int seen_flock = 0;
@@ -248,8 +255,10 @@ int ceph_encode_locks_to_buffer(struct inode *inode,
 			++l;
 		}
 	}
-	for (lock = inode->i_flock; lock != NULL; lock = lock->fl_next) {
-		if (lock->fl_flags & FL_FLOCK) {
+
+	ctx = inode->i_flctx;
+	if (ctx) {
+		list_for_each_entry(lock, &ctx->flc_flock, fl_list) {
 			++seen_flock;
 			if (seen_flock > num_flock_locks) {
 				err = -ENOSPC;

@@ -85,15 +85,16 @@ static int nfs_delegation_claim_locks(struct nfs4_state *state, const nfs4_state
 {
 	struct inode *inode = state->inode;
 	struct file_lock *fl;
+	struct file_lock_context *flctx;
 	int status = 0;
 
-	if (inode->i_flock == NULL)
+	if (inode->i_flock == NULL && inode->i_flctx == NULL)
 		goto out;
 
 	/* Protect inode->i_flock using the i_lock */
 	spin_lock(&inode->i_lock);
 	for (fl = inode->i_flock; fl != NULL; fl = fl->fl_next) {
-		if (!(fl->fl_flags & (FL_POSIX|FL_FLOCK)))
+		if (!(fl->fl_flags & (FL_POSIX)))
 			continue;
 		if (nfs_file_open_context(fl->fl_file)->state != state)
 			continue;
@@ -102,6 +103,20 @@ static int nfs_delegation_claim_locks(struct nfs4_state *state, const nfs4_state
 		if (status < 0)
 			goto out;
 		spin_lock(&inode->i_lock);
+	}
+
+	flctx = inode->i_flctx;
+	if (flctx) {
+		list_for_each_entry(fl, &flctx->flc_flock, fl_list) {
+			if (nfs_file_open_context(fl->fl_file) != ctx)
+				continue;
+			spin_unlock(&inode->i_lock);
+			status = nfs4_lock_delegation_recall(fl, state,
+								stateid);
+			if (status < 0)
+				goto out;
+			spin_lock(&inode->i_lock);
+		}
 	}
 	spin_unlock(&inode->i_lock);
 out:
