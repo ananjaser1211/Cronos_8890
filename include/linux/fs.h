@@ -985,6 +985,7 @@ struct file_lock {
 
 struct file_lock_context {
 	struct list_head	flc_flock;
+	struct list_head	flc_posix;
 };
 
 /* The following constant reflects the upper bound of the file/locking space */
@@ -2005,7 +2006,7 @@ static inline int locks_verify_truncate(struct inode *inode,
 				    struct file *filp,
 				    loff_t size)
 {
-	if (inode->i_flock && mandatory_lock(inode))
+	if (inode->i_flctx && mandatory_lock(inode))
 		return locks_mandatory_area(
 			FLOCK_VERIFY_WRITE, inode, filp,
 			size < inode->i_size ? size : inode->i_size,

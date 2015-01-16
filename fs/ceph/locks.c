@@ -216,8 +216,12 @@ void ceph_count_locks(struct inode *inode, int *fcntl_count, int *flock_count)
 
 	ctx = inode->i_flctx;
 	if (ctx) {
+		spin_lock(&inode->i_lock);
+		list_for_each_entry(lock, &ctx->flc_posix, fl_list)
+			++(*fcntl_count);
 		list_for_each_entry(lock, &ctx->flc_flock, fl_list)
 			++(*flock_count);
+		spin_unlock(&inode->i_lock);
 	}
 	dout("counted %d flock locks and %d fcntl locks",
 	     *flock_count, *fcntl_count);
@@ -233,7 +237,7 @@ int ceph_encode_locks_to_buffer(struct inode *inode,
 				int num_fcntl_locks, int num_flock_locks)
 {
 	struct file_lock *lock;
-	struct file_lock_context *ctx;
+	struct file_lock_context *ctx = inode->i_flctx;
 	int err = 0;
 	int seen_fcntl = 0;
 	int seen_flock = 0;
@@ -256,19 +260,28 @@ int ceph_encode_locks_to_buffer(struct inode *inode,
 		}
 	}
 
-	ctx = inode->i_flctx;
-	if (ctx) {
-		list_for_each_entry(lock, &ctx->flc_flock, fl_list) {
-			++seen_flock;
-			if (seen_flock > num_flock_locks) {
-				err = -ENOSPC;
-				goto fail;
-			}
-			err = lock_to_ceph_filelock(lock, &flocks[l]);
-			if (err)
-				goto fail;
-			++l;
+	spin_lock(&inode->i_lock);
+	list_for_each_entry(lock, &ctx->flc_flock, fl_list) {
+		++seen_fcntl;
+		if (seen_fcntl > num_fcntl_locks) {
+			err = -ENOSPC;
+			goto fail;
 		}
+		err = lock_to_ceph_filelock(lock, &flocks[l]);
+		if (err)
+			goto fail;
+		++l;
+	}
+	list_for_each_entry(lock, &ctx->flc_flock, fl_list) {
+		++seen_flock;
+		if (seen_flock > num_flock_locks) {
+			err = -ENOSPC;
+			goto fail;
+		}
+		err = lock_to_ceph_filelock(lock, &flocks[l]);
+		if (err)
+			goto fail;
+		++l;
 	}
 fail:
 	return err;
