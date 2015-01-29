@@ -571,9 +571,9 @@ nfsd_access(struct svc_rqst *rqstp, struct svc_fh *fhp, u32 *access, u32 *suppor
 	export = fhp->fh_export;
 	dentry = fhp->fh_dentry;
 
-	if (S_ISREG(dentry->d_inode->i_mode))
+	if (d_is_reg(dentry))
 		map = nfs3_regaccess;
-	else if (S_ISDIR(dentry->d_inode->i_mode))
+	else if (d_is_dir(dentry))
 		map = nfs3_diraccess;
 	else
 		map = nfs3_anyaccess;
@@ -1356,7 +1356,7 @@ do_nfsd_create(struct svc_rqst *rqstp, struct svc_fh *fhp,
 
 		switch (createmode) {
 		case NFS3_CREATE_UNCHECKED:
-			if (! S_ISREG(dchild->d_inode->i_mode))
+			if (! d_is_reg(dchild))
 				goto out;
 			else if (truncp) {
 				/* in nfsv4, we need to treat this case a little
@@ -1569,7 +1569,7 @@ nfsd_link(struct svc_rqst *rqstp, struct svc_fh *ffhp,
 	if (err)
 		goto out;
 	err = nfserr_isdir;
-	if (S_ISDIR(tfhp->fh_dentry->d_inode->i_mode))
+	if (d_is_dir(tfhp->fh_dentry))
 		goto out;
 	err = nfserr_perm;
 	if (!len)
