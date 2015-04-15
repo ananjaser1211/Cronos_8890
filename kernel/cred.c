@@ -32,6 +32,8 @@
 
 static struct kmem_cache *cred_jar;
 
+/* init to 2 - one for init_task, one to ensure it is never freed */
+struct group_info init_groups = { .usage = ATOMIC_INIT(2) };
 #ifdef CONFIG_RKP_KDP
 RKP_RO_AREA int rkp_cred_enable = 0;
 
@@ -73,7 +75,6 @@ void put_cred(const struct cred *_cred)
 	}
 }
 #endif  /* CONFIG_RKP_KDP */
-
 /*
  * The initial credentials for the initial task
  */
