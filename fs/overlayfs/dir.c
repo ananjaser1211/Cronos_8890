@@ -222,6 +222,9 @@ static struct dentry *ovl_clear_empty(struct dentry *dentry,
 	struct kstat stat;
 	int err;
 
+	if (WARN_ON(!workdir))
+		return ERR_PTR(-EROFS);
+
 	err = ovl_lock_rename_workdir(workdir, upperdir);
 	if (err)
 		goto out;
@@ -321,6 +324,9 @@ static int ovl_create_over_whiteout(struct dentry *dentry, struct inode *inode,
 	struct dentry *upper;
 	struct dentry *newdentry;
 	int err;
+
+	if (WARN_ON(!workdir))
+		return -EROFS;
 
 	err = ovl_lock_rename_workdir(workdir, upperdir);
 	if (err)
@@ -506,6 +512,9 @@ static int ovl_remove_and_whiteout(struct dentry *dentry, bool is_dir)
 	struct dentry *opaquedir = NULL;
 	int err;
 	int flags = 0;
+
+	if (WARN_ON(!workdir))
+		return -EROFS;
 
 	if (is_dir) {
 		if (OVL_TYPE_MERGE_OR_LOWER(ovl_path_type(dentry))) {
