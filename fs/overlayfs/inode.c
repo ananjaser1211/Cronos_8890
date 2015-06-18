@@ -368,7 +368,6 @@ struct inode *ovl_d_select_inode(struct dentry *dentry, unsigned file_flags)
 		err = ovl_want_write(dentry);
 		if (err)
 			return ERR_PTR(err);
-
 		if (file_flags & O_TRUNC)
 			err = ovl_copy_up_last(dentry, NULL, true);
 		else
