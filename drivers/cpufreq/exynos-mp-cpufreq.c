@@ -1380,13 +1380,9 @@ static ssize_t show_cpufreq_min_limit(struct kobject *kobj,
 	return nsize;
 }
 
-static ssize_t store_cpufreq_min_limit(struct kobject *kobj, struct attribute *attr,
-					const char *buf, size_t count)
+static void save_cpufreq_min_limit(int input)
 {
-	int cluster1_input, cluster0_input;
-
-	if (!sscanf(buf, "%8d", &cluster1_input))
-		return -EINVAL;
+	int cluster1_input = input, cluster0_input;
 
 	if (cluster1_input >= (int)freq_min[CL_ONE]) {
 #ifdef CONFIG_SCHED_HMP
@@ -1428,6 +1424,17 @@ static ssize_t store_cpufreq_min_limit(struct kobject *kobj, struct attribute *a
 		pm_qos_update_request(&core_min_qos[CL_ONE], cluster1_input);
 	if (pm_qos_request_active(&core_min_qos[CL_ZERO]))
 		pm_qos_update_request(&core_min_qos[CL_ZERO], cluster0_input);
+}
+
+static ssize_t store_cpufreq_min_limit(struct kobject *kobj, struct attribute *attr,
+					const char *buf, size_t count)
+{
+	int cluster1_input;
+
+	if (!sscanf(buf, "%8d", &cluster1_input))
+		return -EINVAL;
+
+	save_cpufreq_min_limit(cluster1_input);
 
 	return count;
 }
@@ -1469,13 +1476,9 @@ static void disable_nonboot_cluster_cpus(void)
 	pm_qos_update_request(&cpufreq_cpu_hotplug_max_request, NR_CLUST1_CPUS);
 }
 
-static ssize_t store_cpufreq_max_limit(struct kobject *kobj, struct attribute *attr,
-					const char *buf, size_t count)
+static void save_cpufreq_max_limit(int input)
 {
-	int cluster1_input, cluster0_input;
-
-	if (!sscanf(buf, "%8d", &cluster1_input))
-		return -EINVAL;
+	int cluster1_input = input, cluster0_input;
 
 	if (cluster1_input >= (int)freq_min[CL_ONE]) {
 		if (cluster1_hotplugged) {
@@ -1511,6 +1514,17 @@ static ssize_t store_cpufreq_max_limit(struct kobject *kobj, struct attribute *a
 		pm_qos_update_request(&core_max_qos[CL_ONE], cluster1_input);
 	if (pm_qos_request_active(&core_max_qos[CL_ZERO]))
 		pm_qos_update_request(&core_max_qos[CL_ZERO], cluster0_input);
+}
+
+static ssize_t store_cpufreq_max_limit(struct kobject *kobj, struct attribute *attr,
+					const char *buf, size_t count)
+{
+	int cluster1_input;
+
+	if (!sscanf(buf, "%8d", &cluster1_input))
+		return -EINVAL;
+
+	save_cpufreq_max_limit(cluster1_input);
 
 	return count;
 }
