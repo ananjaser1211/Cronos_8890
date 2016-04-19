@@ -136,6 +136,13 @@ static int qos_min_default_value[CL_END] = {PM_QOS_CLUSTER0_FREQ_MIN_DEFAULT_VAL
 /* For limit number of online cpus through cpuhotplug */
 struct pm_qos_request cpufreq_cpu_hotplug_max_request;
 
+// reset DVFS
+#ifdef CONFIG_PM
+#define DVFS_RESET_SEC 15
+static struct delayed_work dvfs_reset_work;
+static struct workqueue_struct *dvfs_reset_wq;
+#endif
+
 /*
  * CPUFREQ init notifier
  */
@@ -1435,6 +1442,10 @@ static ssize_t store_cpufreq_min_limit(struct kobject *kobj, struct attribute *a
 		return -EINVAL;
 
 	save_cpufreq_min_limit(cluster1_input);
+	cancel_delayed_work_sync(&dvfs_reset_work);
+	if (cluster1_input > 0)
+		queue_delayed_work_on(0, dvfs_reset_wq, &dvfs_reset_work,
+			DVFS_RESET_SEC * HZ);
 
 	return count;
 }
@@ -1525,8 +1536,23 @@ static ssize_t store_cpufreq_max_limit(struct kobject *kobj, struct attribute *a
 		return -EINVAL;
 
 	save_cpufreq_max_limit(cluster1_input);
+	cancel_delayed_work_sync(&dvfs_reset_work);
+	if (cluster1_input > 0)
+		queue_delayed_work_on(0, dvfs_reset_wq, &dvfs_reset_work,
+			DVFS_RESET_SEC * HZ);
 
 	return count;
+}
+
+static void dvfs_reset_work_fn(struct work_struct *work)
+{
+	pr_info("%s++: DVFS timed out(%d)! Resetting with -1\n", __func__, DVFS_RESET_SEC);
+
+	save_cpufreq_min_limit(-1);
+	msleep(20);
+	save_cpufreq_max_limit(-1);
+
+	pr_info("%s--\n", __func__);
 }
 #endif
 
@@ -2396,6 +2422,11 @@ static int exynos_cpufreq_init(void)
 		pr_err("%s: failed to create cpufreq_self_discharging sysfs interface\n", __func__);
 		goto err_cpufreq_self_discharging;
 	}
+#endif
+
+#ifdef CONFIG_PM
+	dvfs_reset_wq = create_workqueue("dvfs_reset");
+	INIT_DELAYED_WORK(&dvfs_reset_work, dvfs_reset_work_fn);
 #endif
 
 	exynos_cpufreq_init_done = true;
