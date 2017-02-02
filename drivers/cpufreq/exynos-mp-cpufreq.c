@@ -35,6 +35,8 @@
 #include <linux/of.h>
 #include <linux/apm-exynos.h>
 
+#include <linux/sysfs_helpers.h>
+
 #include <asm/smp_plat.h>
 #include <asm/cputype.h>
 
@@ -52,6 +54,18 @@
 
 #define POWER_COEFF_15P		68 /* percore param */
 #define POWER_COEFF_7P		10 /* percore  param */
+
+#ifdef CONFIG_SOC_EXYNOS8890
+#define CL0_MAX_VOLT		1475000
+#define CL1_MAX_VOLT		1575000
+#define CL0_MIN_VOLT		500000
+#define CL1_MIN_VOLT		500000
+#define CL_MAX_VOLT(cl)		(cl == CL_ZERO ? CL0_MAX_VOLT : CL1_MAX_VOLT)
+#define CL_MIN_VOLT(cl)		(cl == CL_ZERO ? CL0_MIN_VOLT : CL1_MIN_VOLT)
+#define CL_VOLT_STEP		6250
+#else
+#error "Please define core voltage ranges for current SoC."
+#endif
 
 #define VOLT_RANGE_STEP		25000
 #define CLUSTER_ID(cl)		(cl ? ID_CL1 : ID_CL0)
@@ -1592,6 +1606,95 @@ inline ssize_t store_core_freq(const char *buf, size_t count,
 	return count;
 }
 
+static size_t get_freq_table_size(struct cpufreq_frequency_table *freq_table)
+{
+	size_t tbl_sz = 0;
+	int i;
+
+	for (i = 0; freq_table[i].frequency != CPUFREQ_TABLE_END; i++)
+		tbl_sz++;
+
+	return tbl_sz;
+}
+
+static ssize_t show_volt_table(struct kobject *kobj,
+				struct attribute *attr, char *buf, int cluster)
+{
+	int i, count = 0;
+	size_t tbl_sz = 0, pr_len;
+	struct cpufreq_frequency_table *freq_table = exynos_info[cluster]->freq_table;
+
+	for (i = 0; freq_table[i].frequency != CPUFREQ_TABLE_END; i++)
+		tbl_sz++;
+
+	if (tbl_sz == 0)
+		return -EINVAL;
+
+	pr_len = (size_t)((PAGE_SIZE - 2) / tbl_sz);
+
+	for (i = 0; freq_table[i].frequency != CPUFREQ_TABLE_END; i++) {
+		if (freq_table[i].frequency != CPUFREQ_ENTRY_INVALID)
+			count += snprintf(&buf[count], pr_len, "%d %d\n",
+					freq_table[i].frequency,
+					exynos_info[cluster]->volt_table[i]);
+	}
+
+	return count;
+}
+
+static ssize_t store_volt_table(struct kobject *kobj, struct attribute *attr,
+					const char *buf, size_t count, int cluster)
+{
+	int i, tokens, rest, target, invalid_offset;
+	struct cpufreq_frequency_table *freq_table = exynos_info[cluster]->freq_table;
+	size_t tbl_sz = get_freq_table_size(freq_table);
+	int t[tbl_sz];
+
+	invalid_offset = 0;
+
+	if ((tokens = read_into((int*)&t, tbl_sz, buf, count)) < 0)
+		return -EINVAL;
+
+	target = -1;
+	if (tokens == 2) {
+		for (i = 0; (freq_table[i].frequency != CPUFREQ_TABLE_END); i++) {
+			unsigned int freq = freq_table[i].frequency;
+			if (freq == CPUFREQ_ENTRY_INVALID)
+				continue;
+
+			if (t[0] == freq) {
+				target = i;
+				break;
+			}
+		}
+	}
+
+	mutex_lock(&cpufreq_lock);
+
+	if (tokens == 2 && target > 0) {
+		if ((rest = t[1] % CL_VOLT_STEP) != 0)
+			t[1] += CL_VOLT_STEP - rest;
+		
+		sanitize_min_max(t[1], CL_MIN_VOLT(cluster), CL_MAX_VOLT(cluster));
+		exynos_info[cluster]->volt_table[target] = t[1];
+	} else {
+		for (i = 0; i < tokens; i++) {
+			while (freq_table[i + invalid_offset].frequency == CPUFREQ_ENTRY_INVALID)
+				++invalid_offset;
+
+			if ((rest = t[i] % CL_VOLT_STEP) != 0)
+				t[i] += CL_VOLT_STEP - rest;
+			
+			sanitize_min_max(t[i], CL_MIN_VOLT(cluster), CL_MAX_VOLT(cluster));
+			exynos_info[cluster]->volt_table[i + invalid_offset] = t[i];
+		}
+	}
+
+	mutex_unlock(&cpufreq_lock);
+
+	return count;
+}
+
 static ssize_t show_cluster1_freq_table(struct kobject *kobj,
 				struct attribute *attr, char *buf)
 {
@@ -1620,6 +1723,18 @@ static ssize_t store_cluster1_max_freq(struct kobject *kobj, struct attribute *a
 					const char *buf, size_t count)
 {
 	return store_core_freq(buf, count, CL_ONE, true);
+}
+
+static ssize_t show_cluster1_volt_table(struct kobject *kobj,
+				struct attribute *attr, char *buf)
+{
+	return show_volt_table(kobj, attr, buf, CL_ONE);
+}
+
+static ssize_t store_cluster1_volt_table(struct kobject *kobj, struct attribute *attr,
+					const char *buf, size_t count)
+{
+	return store_volt_table(kobj, attr, buf, count, CL_ONE);
 }
 
 static ssize_t show_cluster0_freq_table(struct kobject *kobj,
@@ -1652,20 +1767,36 @@ static ssize_t store_cluster0_max_freq(struct kobject *kobj, struct attribute *a
 	return store_core_freq(buf, count, CL_ZERO, true);
 }
 
+static ssize_t show_cluster0_volt_table(struct kobject *kobj,
+				struct attribute *attr, char *buf)
+{
+	return show_volt_table(kobj, attr, buf, CL_ZERO);
+}
+
+static ssize_t store_cluster0_volt_table(struct kobject *kobj, struct attribute *attr,
+					const char *buf, size_t count)
+{
+	return store_volt_table(kobj, attr, buf, count, CL_ZERO);
+}
+
 define_one_global_ro(cluster1_freq_table);
 define_one_global_rw(cluster1_min_freq);
 define_one_global_rw(cluster1_max_freq);
+define_one_global_rw(cluster1_volt_table);
 define_one_global_ro(cluster0_freq_table);
 define_one_global_rw(cluster0_min_freq);
 define_one_global_rw(cluster0_max_freq);
+define_one_global_rw(cluster0_volt_table);
 
 static struct attribute *mp_attributes[] = {
 	&cluster1_freq_table.attr,
 	&cluster1_min_freq.attr,
 	&cluster1_max_freq.attr,
+	&cluster1_volt_table.attr,
 	&cluster0_freq_table.attr,
 	&cluster0_min_freq.attr,
 	&cluster0_max_freq.attr,
+	&cluster0_volt_table.attr,
 	NULL
 };
 
