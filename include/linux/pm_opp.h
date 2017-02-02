@@ -17,14 +17,33 @@
 #include <linux/err.h>
 #include <linux/notifier.h>
 
-struct dev_pm_opp;
+struct dev_pm_opp {
+	struct list_head node;
+
+	bool available;
+	unsigned long rate;
+	unsigned long u_volt;
+
+	struct device_opp *dev_opp;
+	struct rcu_head head;
+};
+
 struct device;
+
+struct device_opp {
+	struct list_head node;
+
+	struct device *dev;
+	struct srcu_notifier_head head;
+	struct list_head opp_list;
+};
 
 enum dev_pm_opp_event {
 	OPP_EVENT_ADD, OPP_EVENT_ENABLE, OPP_EVENT_DISABLE,
 };
 
 #if defined(CONFIG_PM_OPP)
+struct device_opp *find_device_opp(struct device *dev);
 
 unsigned long dev_pm_opp_get_voltage(struct dev_pm_opp *opp);
 
