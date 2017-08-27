@@ -1039,7 +1039,7 @@ static void setup_sysfs(struct arbiter_data *arb)
 	}
 }
 
-static void setup_power_tables(void)
+static void ipa_setup_power_tables(void)
 {
 	struct cpu_power_info t;
 	int i;
@@ -1077,6 +1077,35 @@ static int setup_cpufreq_tables(int cl_idx)
 	}
 
 	return cnt;
+}
+
+static void ipa_setup_max_limits(void)
+{
+	int i;
+
+	arbiter_data.gpu_freq_limit = get_ipa_dvfs_max_freq();
+	arbiter_data.cpu_freq_limits[CL_ONE] = get_real_max_freq(CL_ONE);
+	arbiter_data.cpu_freq_limits[CL_ZERO] = get_real_max_freq(CL_ZERO);
+	for (i = 0; i < NR_CPUS; i++) {
+		arbiter_data.cpu_freqs[CL_ONE][i] = get_real_max_freq(CL_ONE);
+		arbiter_data.cpu_freqs[CL_ZERO][i] = get_real_max_freq(CL_ZERO);
+	}
+
+	/* reconfigure max */
+	arbiter_data.config.little_max_power = freq_to_power(KHZ_TO_MHZ(arbiter_data.cpu_freq_limits[CL_ZERO]),
+							nr_little_coeffs, little_cpu_coeffs) * cpumask_weight(arbiter_data.cl_stats[CL_ZERO].mask);
+
+	arbiter_data.config.big_max_power = freq_to_power(KHZ_TO_MHZ(arbiter_data.cpu_freq_limits[CL_ONE]),
+							nr_big_coeffs, big_cpu_coeffs) * cpumask_weight(arbiter_data.cl_stats[CL_ONE].mask);
+
+	arbiter_data.config.gpu_max_power = kbase_platform_dvfs_freq_to_power(arbiter_data.gpu_freq_limit);
+
+	arbiter_data.config.soc_max_power = arbiter_data.config.gpu_max_power +
+		arbiter_data.config.big_max_power +
+		arbiter_data.config.gpu_max_power;
+	/* TODO when we introduce dynamic RoS power we need
+	   to add a ros_max_power !! */
+	arbiter_data.config.soc_max_power += arbiter_data.config.ros_power;
 }
 
 static int __maybe_unused read_soc_temperature(void)
@@ -1442,10 +1471,13 @@ int thermal_unregister_notifier(struct notifier_block *nb)
 extern bool exynos_cpufreq_init_done;
 static struct delayed_work init_work;
 
+void ipa_update(void)
+{
+	ipa_setup_power_tables();
+}
+
 static void arbiter_init(struct work_struct *work)
 {
-	int i;
-
 	if (!exynos_cpufreq_init_done) {
 		pr_info("exynos_cpufreq not initialized. Deferring again...\n");
 		queue_delayed_work(system_freezable_wq, &init_work,
@@ -1453,38 +1485,17 @@ static void arbiter_init(struct work_struct *work)
 		return;
 	}
 
-	arbiter_data.gpu_freq_limit = get_ipa_dvfs_max_freq();
-	arbiter_data.cpu_freq_limits[CL_ONE] = get_real_max_freq(CL_ONE);
-	arbiter_data.cpu_freq_limits[CL_ZERO] = get_real_max_freq(CL_ZERO);
-	for (i = 0; i < NR_CPUS; i++) {
-		arbiter_data.cpu_freqs[CL_ONE][i] = get_real_max_freq(CL_ONE);
-		arbiter_data.cpu_freqs[CL_ZERO][i] = get_real_max_freq(CL_ZERO);
-	}
-
 	setup_cpusmasks(arbiter_data.cl_stats);
 
 	reset_arbiter_configuration(&arbiter_data.config);
 	arbiter_data.debugfs_root = setup_debugfs(&arbiter_data.config);
 	setup_sysfs(&arbiter_data);
+
 	nr_little_coeffs = setup_cpufreq_tables(CL_ZERO);
 	nr_big_coeffs = setup_cpufreq_tables(CL_ONE);
-	setup_power_tables();
 
-	/* reconfigure max */
-	arbiter_data.config.little_max_power = freq_to_power(KHZ_TO_MHZ(arbiter_data.cpu_freq_limits[CL_ZERO]),
-							nr_little_coeffs, little_cpu_coeffs) * cpumask_weight(arbiter_data.cl_stats[CL_ZERO].mask);
-
-	arbiter_data.config.big_max_power = freq_to_power(KHZ_TO_MHZ(arbiter_data.cpu_freq_limits[CL_ONE]),
-							nr_big_coeffs, big_cpu_coeffs) * cpumask_weight(arbiter_data.cl_stats[CL_ONE].mask);
-
-	arbiter_data.config.gpu_max_power = kbase_platform_dvfs_freq_to_power(arbiter_data.gpu_freq_limit);
-
-	arbiter_data.config.soc_max_power = arbiter_data.config.gpu_max_power +
-		arbiter_data.config.big_max_power +
-		arbiter_data.config.gpu_max_power;
-	/* TODO when we introduce dynamic RoS power we need
-	   to add a ros_max_power !! */
-	arbiter_data.config.soc_max_power += arbiter_data.config.ros_power;
+	ipa_setup_power_tables();
+	ipa_setup_max_limits();
 
 	INIT_DELAYED_WORK(&arbiter_data.work, arbiter_poll);
 
