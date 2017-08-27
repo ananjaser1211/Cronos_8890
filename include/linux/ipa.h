@@ -61,6 +61,7 @@ int ipa_hotplug(bool remove_cores);  // this is not very generic
 
 #ifdef CONFIG_CPU_THERMAL_IPA
 
+void ipa_update(void);
 void ipa_cpufreq_requested(struct cpufreq_policy *p, unsigned int freq);
 int ipa_register_thermal_sensor(struct ipa_sensor_conf *);
 int thermal_register_notifier(struct notifier_block *nb);
