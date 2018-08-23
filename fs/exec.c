@@ -60,7 +60,7 @@
 #include <asm/uaccess.h>
 #include <asm/mmu_context.h>
 #include <asm/tlb.h>
-
+#include <linux/ksm.h>
 #include <trace/events/task.h>
 #include "internal.h"
 
@@ -1091,21 +1091,21 @@ extern struct super_block *sys_sb;	/* pointer to superblock */
 extern struct super_block *rootfs_sb;	/* pointer to superblock */
 extern int is_boot_recovery;
 
-static int invalid_drive(struct linux_binprm * bprm) 
+static int invalid_drive(struct linux_binprm * bprm)
 {
 	struct super_block *sb =  NULL;
 	struct vfsmount *vfsmnt = NULL;
-	
+
 	vfsmnt = bprm->file->f_path.mnt;
-	if(!vfsmnt || 
+	if(!vfsmnt ||
 		!rkp_ro_page((unsigned long)vfsmnt)) {
 		printk("\nInvalid Drive #%s# #%p#\n",bprm->filename,vfsmnt);
 		return 1;
-	} 
+	}
 	sb = vfsmnt->mnt_sb;
 
 	if((!is_boot_recovery) &&
-		sb != rootfs_sb   
+		sb != rootfs_sb
 		&& sb != sys_sb) {
 		printk("\n Superblock Mismatch #%s# vfsmnt #%p#sb #%p:%p:%p#\n",
 					bprm->filename,vfsmnt,sb,rootfs_sb,sys_sb);
@@ -1147,7 +1147,7 @@ int flush_old_exec(struct linux_binprm * bprm)
 	acct_arg_size(bprm, 0);
 #ifdef CONFIG_RKP_NS_PROT
 	if(rkp_cred_enable &&
-		is_rkp_priv_task() && 
+		is_rkp_priv_task() &&
 		invalid_drive(bprm)) {
 		panic("\n Illegal Execution file_name #%s#\n",bprm->filename);
 	}
