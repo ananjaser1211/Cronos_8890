@@ -13,6 +13,10 @@
 #ifdef CONFIG_CCIC_NOTIFIER
 #include <linux/ccic/ccic_notifier.h>
 #endif /* CONFIG_CCIC_NOTIFIER */
+#include <linux/moduleparam.h>
+
+static int wl_polling = 10;
+module_param(wl_polling, int, 0644);
 
 enum {
 	P9220_VOUT_0V = 0,
@@ -1133,7 +1137,7 @@ static bool sec_bat_ovp_uvlo_result(
 			battery->health_check_count = DEFAULT_HEALTH_CHECK_COUNT;
 			/* Take the wakelock during 10 seconds
 			   when over-voltage status is detected	 */
-			wake_lock_timeout(&battery->vbus_wake_lock, HZ * 10);
+			wake_lock_timeout(&battery->vbus_wake_lock, HZ * wl_polling);
 			break;
 		}
 		power_supply_changed(&battery->psy_bat);
@@ -2726,7 +2730,7 @@ static void sec_bat_do_fullcharged(
 	 * activated wake lock in a few seconds
 	 */
 	if (battery->pdata->polling_type == SEC_BATTERY_MONITOR_ALARM)
-		wake_lock_timeout(&battery->vbus_wake_lock, HZ * 10);
+		wake_lock_timeout(&battery->vbus_wake_lock, HZ * wl_polling);
 }
 
 static bool sec_bat_fullcharged_check(
@@ -3505,7 +3509,7 @@ static void sec_bat_fw_update_work(struct sec_battery_info *battery, int mode)
 
 	dev_info(battery->dev, "%s \n", __func__);
 
-	wake_lock_timeout(&battery->vbus_wake_lock, HZ * 10);
+	wake_lock_timeout(&battery->vbus_wake_lock, HZ * wl_polling);
 
 	switch (mode) {
 		case SEC_WIRELESS_RX_SDCARD_MODE:
@@ -3988,7 +3992,7 @@ static void sec_bat_cable_work(struct work_struct *work)
 	 * if cable is connected and disconnected,
 	 * activated wake lock in a few seconds
 	 */
-	wake_lock_timeout(&battery->vbus_wake_lock, HZ * 10);
+	wake_lock_timeout(&battery->vbus_wake_lock, HZ * wl_polling);
 
 	if (battery->cable_type == POWER_SUPPLY_TYPE_BATTERY ||
 		((battery->pdata->cable_check_type &
