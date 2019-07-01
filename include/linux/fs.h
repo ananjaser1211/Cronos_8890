@@ -855,7 +855,7 @@ struct file {
 	struct list_head	f_tfile_llink;
 #endif /* #ifdef CONFIG_EPOLL */
 	struct address_space	*f_mapping;
-} __attribute__((aligned(4)));	/* lest something weird decides that 2 is OK */
+} __attribute__((aligned(8)));
 
 struct file_handle {
 	__u32 handle_bytes;
