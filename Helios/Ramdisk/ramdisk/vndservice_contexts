@@ -1,0 +1,6 @@
+*                       u:object_r:default_android_vndservice:s0
+Exynos.HWCService     u:object_r:vendor_surfaceflinger_vndservice:s0
+WlanDutService                              u:object_r:wlandutservice_vndservice:s0
+android.samsung.IRemosaicDaemon             u:object_r:remosaicd_vndservice:s0
+SccHalAudioContext             u:object_r:SccHalAudio_service:s0
+SccHalSoundTriggerContext             u:object_r:SccHalAudio_service:s0
