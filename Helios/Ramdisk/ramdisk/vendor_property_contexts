@@ -1,0 +1,157 @@
+#line 1 "device/samsung/sepolicy/property_contexts"
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23226493/?page=1
+# No use
+#persist.debug_level       u:object_r:vendor_rild_prop:s0
+#persist.ril.              u:object_r:vendor_rild_prop:s0
+#radio.ril.                u:object_r:vendor_rild_prop:s0
+#sys.rild_reset            u:object_r:vendor_rild_prop:s0
+
+# for ims service
+persist.config.ims.       u:object_r:vendor_ims_prop:s0
+
+# for silentlog
+persist.vendor.dev.silentlog     u:object_r:vendor_slog_prop:s0
+persist.vendor.dev.silentlog.    u:object_r:vendor_slog_prop:s0
+
+# for camera hal
+persist.vendor.sys.camera.       u:object_r:vendor_camera_prop:s0
+persist.vendor.hifills.          u:object_r:vendor_camera_prop:s0
+persist.vendor.dualCam.          u:object_r:vendor_camera_prop:s0
+persist.vendor.camera.           u:object_r:vendor_camera_prop:s0
+vendor.hal.camera.               u:object_r:vendor_camera_prop:s0
+
+# more vendor properties
+vendor.ddk.set.afbc              u:object_r:vendor_hwc_prop:s0
+ro.vendor.cscsupported  u:object_r:vendor_default_prop:s0
+vendor.sys.mobicoredaemon.enable  u:object_r:vendor_mobicoredaemon_prop:s0
+
+# need to check
+sat.test.monkey.pid       u:object_r:vendor_prop:s0
+#line 1 "vendor/samsung/system/sepolicy/samsung/property_contexts"
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23265980
+vendor.bluetooth_fw_ver                     u:object_r:vendor_bluetooth_prop:s0
+
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23332597
+persist.vendor.nfc.log.index                u:object_r:vendor_nfc_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23343491
+vendor.debug.egl.                                u:object_r:vendor_debug_egl_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23344749
+vendor.tzdaemon                u:object_r:vendor_tzdaemon_prop:s0
+vendor.secureos.               u:object_r:vendor_secureos_prop:s0
+vendor.tzts_daemon             u:object_r:vendor_tztsdaemon_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23365202/?page=1
+vendor.proxy_daemon             u:object_r:vendor_proxydaemon_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23344683
+vendor.wlandriver.             u:object_r:vendor_wlandriver_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23375973
+vendor.omadm.                                 u:object_r:vendor_omadm_prop:s0
+persist.vendor.sys.spr_hfa_completed          u:object_r:vendor_omadm_prop:s0
+persist.vendor.sys.omadm_hfa_prl              u:object_r:vendor_omadm_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23400249
+# vendor.debug.prerotation.disable                                u:object_r:vendor_debug_egl_prop:s0
+# ro.vendor.graphics.memory                                u:object_r:vendor_debug_egl_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23402289
+vendor.nfc.fw.                                           u:object_r:vendor_nfc_prop:s0     
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-340
+vpnclientpm.    u:object_r:vpn_prop:s0
+vpn.status    u:object_r:vpn_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-346
+wlan.p2p.          u:object_r:wlan_p2p_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23610824/
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-631
+persist.vendor.members.                           u:object_r:vendor_members_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-355
+mnodmclient.boot_completed                           u:object_r:mnodmclient_boot_completed_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-633
+vendor.fips.bssl.post                           u:object_r:vendor_bssl_post_prop:s0
+fips.bssl.post                           u:object_r:bssl_post_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-752
+persist.spay.transitcard			u:object_r:spay_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-769
+init.svc.vendor.drm-clearkey-hal-1-1			u:object_r:vendor_mediadrm_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-806
+vendor.dolby.                     u:object_r:dolby_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-805
+bootanim.flipStatus 							u:object_r:sec_bootanim_prop:s0
+
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-912
+# QCOM_DUPLICATED : vendor.fastrpc.                                 u:object_r:vendor_fastrpc_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-938
+ro.error.receiver.default                       u:object_r:receiver_error_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-674
+init.svc.compact_dump                          u:object_r:compact_dump_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1135
+ro.vendor.model_suffix                          u:object_r:vendor_model_suffix_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1152
+oneseg.         u:object_r:oneseg_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1034
+vold.should_defrag                  u:object_r:defrag_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1210
+vendor.wlbtd.                       u:object_r:vendor_wlbtd_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1208
+ro.csc.spotify.music.partnerid                u:object_r:csc_prop:s0
+ro.csc.spotify.music.referrerid                u:object_r:csc_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1215
+ro.build.characteristics             u:object_r:exported2_default_prop:s0 exact string
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1266
+vendor.npu.usr_drv.log_mask          u:object_r:sec_camera_prop:s0
+
+# P171129-05596
+wifi.                                  u:object_r:sec_wifi_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-752
+persist.vendor.zit.      		u:object_r:vendor_zygoteinit_prop:s0
+
+#  http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1307
+persist.smartcard.payment_sim      		u:object_r:payment_sim_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1475
+ro.boot.activatedid      		u:object_r:boot_activatedid_prop:s0
+
+#line 1 "vendor/samsung/system/sepolicy/BSP/slsi/common/property_contexts"
+##########################
+# property service keys
+#
+#
+persist.data_netmgrd_mtu        u:object_r:rild_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23315013
+vendor.cbd.rfs_check_done                   u:object_r:vendor_rild_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23443555
+vendor.cbd.                                 u:object_r:vendor_cbd_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23402289
+vendor.TEEGRIS.                             u:object_r:vendor_teegris_prop:s0
+
+#line 1 "system/sepolicy/reqd_mask/property_contexts"
+# empty property_contexts file - this file is used to generate an empty
+# non-platform property context for devices without any property_contexts
+# customizations.
