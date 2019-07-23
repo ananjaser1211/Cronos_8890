@@ -25,7 +25,7 @@ enum {
 	CONN_GADGET_IOCTL_BIND_STATUS_UNBIND = 2
 };
 
-#if defined(__ANDROID__)||defined(__TIZEN__)
+#ifdef __CONN_GADGET_IOCTL_DEFINE__
 
 enum { 
 	CONN_GADGET_IOCTL_NR_0 = 0,
