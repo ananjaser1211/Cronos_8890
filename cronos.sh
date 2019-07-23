@@ -106,7 +106,7 @@ BUILD_DTB()
 	# Use the DTS list provided in the build script.
 	# This source does not compile dtbs while doing Image
 	make $CR_DTSFILES
-	./scripts/dtbTool/dtbTool -o $CR_DTB -d $CR_DTS/ -s 2048
+	./tools/dtbTool/dtbTool -o $CR_DTB -d $CR_DTS/ -s 2048
 	if [ ! -e $CR_DTB ]; then
 	exit 0;
 	echo "DTB Failed to Compile"
