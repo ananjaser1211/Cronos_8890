@@ -97,3 +97,7 @@ all.config
 
 # fetched Android config fragments
 android/configs/android-*.cfg
+# Work
+Helios/Out/*.img
+Helios/R/*
+drivers/gator/gator_src_md5.h
