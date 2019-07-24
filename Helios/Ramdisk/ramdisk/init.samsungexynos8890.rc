@@ -645,6 +645,7 @@ on fs
     chmod 0664 /sys/class/input_booster/level
     chmod 0664 /sys/class/input_booster/head
     chmod 0664 /sys/class/input_booster/tail
+    chmod 0666 /sys/class/input_booster/touchkey/time
 
 # Performance
     chown system radio /sys/power/cpufreq_max_limit

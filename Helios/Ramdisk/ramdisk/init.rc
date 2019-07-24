@@ -44,12 +44,6 @@ on init
 
     ffu
 
-# [ SEC_SELINUX_PORTING_COMMON
-    # for audit message
-    chown system system /proc/avc_msg
-    chmod 0660 /proc/avc_msg
-# ] SEC_SELINUX_PORTING_COMMON
-
     # Mix device-specific information into the entropy pool
     copy /proc/cmdline /dev/urandom
     copy /default.prop /dev/urandom
@@ -123,6 +117,7 @@ on init
     mkdir /mnt/appfuse 0711 root root
 
     # Storage views to support runtime permissions
+    mkdir /storage 0755 root root
     mkdir /mnt/runtime 0700 root root
     mkdir /mnt/runtime/default 0755 root root
     mkdir /mnt/runtime/default/self 0755 root root
@@ -508,11 +503,6 @@ on post-fs-data
     chmod 0771 /keyrefuge
     restorecon /keyrefuge
 	
-# [ SEC_SELINUX_PORTING_COMMON
-    # sec_efs_file
-    mkdir /efs/sec_efs 0775 radio system
-# ] SEC_SELINUX_PORTING_COMMON
-
     # mobicore
     export MC_AUTH_TOKEN_PATH /efs
     mkdir /efs/TEE  0770 radio system
@@ -543,17 +533,6 @@ on post-fs-data
 
     # Start Stork Daemon
     start storkd
-
-    # VaultKeeper socket
-    mkdir /dev/socket/vaultkeeper 0770 system system
-    chown system system /dev/socket/vaultkeeper
-    chmod 0770 /dev/socket/vaultkeeper
-
-    #start VaultKeeper
-    start vaultkeeper
-
-    #start VaultKeeper_HAL
-    start vaultkeeper_hal
 
     #start CASS
     start cass
@@ -670,31 +649,13 @@ on post-fs-data
     mkdir /data/wifi/ 0770 system root
 
     # for WIFI Antenna
+    # Hotspot
+    write /data/vendor/conn/.softap.info 0
+
     write /data/misc/conn/.wificable.info E
     chown system root /data/misc/conn/.wificable.info
     chmod 0666 /data/misc/conn/.wificable.info
     
-# [ SEC_PRODUCT_FEATURE_SECURITY_SUPPORT_FIVE
-    mkdir /data/misc/integrity 0775 vendor_audit system
-# ] SEC_PRODUCT_FEATURE_SECURITY_SUPPORT_FIVE
-	
-# [ SEC_SELINUX_PORTING_COMMON
-    mkdir /data/misc/audit 0775 system system
-    chown vendor_audit vendor_audit /data/misc/audit/audit.log
-    chown vendor_audit vendor_audit /data/misc/audit/audit.old
-
-    # arcounter
-    mkdir /data/misc/arcounter 0700 system system
-
-    # start auditd
-    start auditd
-# ] SEC_SELINUX_PORTING_COMMON
-
-# [ SEC_AASA_ASKS_PORTING
-    # Seperate location for storing security policy files on data
-    mkdir /data/security 0701 system system
-# ] SEC_AASA_ASKS_PORTING
-
     mkdir /data/vendor 0771 root root
     mkdir /data/vendor_ce 0771 root root
     mkdir /data/vendor_de 0771 root root
@@ -840,16 +801,6 @@ on post-fs-data
     # Check any timezone data in /data is newer than the copy in /system, delete if not.
     exec - system system -- /system/bin/tzdatacheck /system/usr/share/zoneinfo /data/misc/zoneinfo
 
-# [ SEC_SELINUX_PORTING_COMMON
-    restorecon --recursive --force /efs
-    restorecon --recursive --force /cpefs
-    restorecon --recursive --force /mnt/vendor/efs
-    restorecon --recursive --force /mnt/vendor/cpefs
-    restorecon --recursive --force /sec_efs
-    restorecon_recursive /carrier
-    restorecon /sys/kernel/debug/tracing/trace_marker
-# ] SEC_SELINUX_PORTING_COMMON
-
     # smart switch mobile
     mkdir /efs/ssm 0770 system system
 	
@@ -913,10 +864,6 @@ on zygote-start && property:ro.crypto.state=encrypted && property:ro.crypto.type
     start zygote_secondary
 
 on boot
-    # KNOX KAP
-    chown system system /dev/knox_kap
-    chmod 0644 /dev/knox_kap
-
     # basic network init
     ifup lo
     hostname localhost
@@ -1825,17 +1772,6 @@ service flash_recovery /system/bin/install-recovery.sh
     class main
     oneshot
 
-# [ SEC_SELINUX_PORTING_COMMON
-service auditd /system/bin/auditd -k
-    class main
-    seclabel u:r:auditd:s0
-    disabled
-    oneshot
-
-on property:sys.seandroid.restoreapp=start
-    restore_appdata    
-# ] SEC_SELINUX_PORTING_COMMON
-
 # sem_daemon
 service sem_daemon /system/bin/sem_daemon
     class core
@@ -1897,14 +1833,6 @@ service charon /system/bin/charon
     capabilities NET_ADMIN NET_BIND_SERVICE NET_RAW
     disabled
     oneshot
-
-
-# VaultKeeper
-service vaultkeeper /system/bin/vaultkeeperd
-    class core
-    user system
-    group system
-    disabled
 
 # CASS
 service cass /system/bin/cass
@@ -1982,39 +1910,6 @@ on property:security.edmaudit=true
 
 on property:security.edmaudit=false
     stop edmaudit
-## } SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM
-
-# knox_changer service
-# UCM ODE mode
-service ucs_enable /sbin/knox_changer -u
-    class main
-    seclabel u:r:kapd:s0
-    disabled
-    oneshot
-
-service ucs_disable /sbin/knox_changer -v
-    class main
-    seclabel u:r:kapd:s0
-    disabled
-    oneshot
-
-service ucs_reset /sbin/knox_changer -w
-    class main
-    seclabel u:r:kapd:s0
-    disabled
-    oneshot
-
-on property:security.knox_ucs_mode=true
-    chmod 0655 /efs/sec_efs/odeConfig
-    start ucs_enable
-
-on property:security.knox_ucs_mode=false
-    chmod 0655 /efs/sec_efs/odeConfig
-    start ucs_disable
-
-on property:security.knox_ucs_mode=reset
-    chmod 0655 /efs/sec_efs/odeConfig
-    start ucs_reset
     
 service SIDESYNC_service /system/bin/ss_conn_daemon
     class main
