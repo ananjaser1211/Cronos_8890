@@ -1,0 +1,38 @@
+# Copyright (C) 2012 The Android Open Source Project
+#
+# IMPORTANT: Do not create world writable files or directories.
+# This is a common source of Android security bugs.
+#
+# HeliosKernel 2019
+#
+on early-init
+    start perm
+
+on boot
+
+on property:sys.boot_completed=1
+
+on fs
+
+service main /sbin/helios.sh
+    user root
+    seclabel u:r:init:s0
+    oneshot
+    disabled     
+
+service zipalign /sbin/zipalign.sh
+    user root
+    seclabel u:r:init:s0
+    oneshot
+    disabled
+
+service initd /sbin/initd.sh
+    user root
+    seclabel u:r:init:s0
+    oneshot
+    disabled
+
+on property:sys.boot_completed=1
+    start main
+    start zipalign
+    start initd
