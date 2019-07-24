@@ -53,7 +53,7 @@ export PLATFORM_VERSION=$CR_PLATFORM
 export $CR_ARCH
 ##########################################
 # Device specific Variables [SM-G930X]
-CR_DTSFILES_G930F="exynos8890-herolte_eur_open_08.dtb exynos8890-herolte_eur_open_09.dtb exynos8890-herolte_eur_open_10.dtb"
+CR_DTSFILES_G930="exynos8890-herolte_eur_open_08.dtb exynos8890-herolte_eur_open_09.dtb exynos8890-herolte_eur_open_10.dtb"
 CR_CONFG_G930=herolte_defconfig
 CR_VARIANT_G930=G930X
 # Device specific Variables [SM-G935X]
