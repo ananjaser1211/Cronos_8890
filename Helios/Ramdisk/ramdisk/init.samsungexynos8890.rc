@@ -7,6 +7,8 @@ import init.fac.rc
 import init.exynos8890_fac.rc
 import init.remove_recovery.rc
 import atrace.rc
+import init.spectrum.rc
+import init.helios.rc
 
 on early-init
     mount debugfs /sys/kernel/debug /sys/kernel/debug
