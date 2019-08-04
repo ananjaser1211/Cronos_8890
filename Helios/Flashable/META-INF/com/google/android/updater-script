@@ -44,11 +44,11 @@ delete_recursive("/system/priv-app/HK");
 #                       Phone Variant Detection
 #####################################################################
 ui_print("-- Detecting phone variant...");
-if is_substring("G930X", getprop("ro.boot.bootloader")) then
+if is_substring("G930", getprop("ro.boot.bootloader")) then
     ui_print("-- Galaxy S7 Flat detected, extracting files...");
     package_extract_file("Helios/device/herolte/boot.img", "/dev/block/platform/155a0000.ufs/by-name/BOOT");
 endif;
-if is_substring("G935X", getprop("ro.boot.bootloader")) then
+if is_substring("G935", getprop("ro.boot.bootloader")) then
     ui_print("-- Galaxy S7 Edge detected, extracting files...");
     package_extract_file("Helios/device/hero2lte/boot.img", "/dev/block/platform/155a0000.ufs/by-name/BOOT");
 endif;
