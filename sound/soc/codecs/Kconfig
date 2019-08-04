@@ -917,5 +917,9 @@ config SND_SOC_TPA6130A2
 
 # DBMDx
 source "sound/soc/codecs/dbmdx/Kconfig"
+
+config MORO_SOUND
+	bool "Sound control for S7 moon driver"
+	default y
 	
 endmenu

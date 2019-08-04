@@ -452,6 +452,31 @@ static int max98506_spk_gain_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+#ifdef CONFIG_MORO_SOUND
+struct snd_soc_codec *max98506_codec;
+
+int get_speaker_gain(void)
+{
+	struct max98506_priv *max98506 = snd_soc_codec_get_drvdata(max98506_codec);
+	struct max98506_pdata *pdata = max98506->pdata;
+
+	return pdata->spk_gain;
+}
+
+int set_speaker_gain(int gain)
+{
+	struct max98506_priv *max98506 = snd_soc_codec_get_drvdata(max98506_codec);
+	struct max98506_pdata *pdata = max98506->pdata;
+
+	max98506_regmap_update_bits(max98506, MAX98506_R02D_GAIN,
+			MAX98506_SPK_GAIN_MASK, gain << MAX98506_SPK_GAIN_SHIFT);
+
+	pdata->spk_gain = gain;
+
+	return pdata->spk_gain;
+}
+#endif
+
 static int max98506_reg_get(struct snd_kcontrol *kcontrol,
 		struct snd_ctl_elem_value *ucontrol, unsigned int reg,
 		unsigned int mask, unsigned int shift)
@@ -1679,6 +1704,9 @@ static int max98506_probe(struct snd_soc_codec *codec)
 	dev_info(codec->dev, "build number %s\n", MAX98506_REVISION);
 
 	max98506->codec = codec;
+#ifdef CONFIG_MORO_SOUND
+	max98506_codec = codec;
+#endif
 	codec->control_data = max98506->regmap;
 
 	rev_id = max98506_check_version(max98506);
