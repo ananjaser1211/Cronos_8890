@@ -33,6 +33,10 @@
 #include "wm_adsp.h"
 #include "moon.h"
 
+#ifdef CONFIG_MORO_SOUND
+#include "moro_sound.h"
+#endif
+
 #define MOON_NUM_ADSP 7
 
 /* Number of compressed DAI hookups, each pair of DSP and dummy CPU
@@ -2930,6 +2934,10 @@ static int moon_codec_probe(struct snd_soc_codec *codec)
 	arizona_init_gpio(codec);
 	arizona_init_mono(codec);
 	arizona_init_input(codec);
+
+#ifdef CONFIG_MORO_SOUND
+	moro_sound_hook_moon_pcm_probe(arizona->regmap);
+#endif
 
 	/* Update Sample Rate 1 to 48kHz for cases when no AIF1 hw_params */
 	regmap_update_bits(arizona->regmap, ARIZONA_SAMPLE_RATE_1,
