@@ -294,7 +294,7 @@ static bool ovl_can_list(const char *s)
 
 	/* Never list trusted.overlay, list other trusted for superuser only */
 	return !ovl_is_private_xattr(s) &&
-	       has_capability_noaudit(current, CAP_SYS_ADMIN);
+	       ns_capable_noaudit(&init_user_ns, CAP_SYS_ADMIN);
 }
 
 ssize_t ovl_listxattr(struct dentry *dentry, char *list, size_t size)
