@@ -70,7 +70,7 @@ static struct workqueue_struct *intr_sync_wq;
 /* It prevents double allocation of intr_sync_wq */
 static DEFINE_MUTEX(intr_sync_wq_lock);
 
-static inline struct interruptible_sync_work *INTR_SYNC_WORK(struct work_struct *work) 
+static inline struct interruptible_sync_work *INTR_SYNC_WORK(struct work_struct *work)
 {
 	return container_of(work, struct interruptible_sync_work, work);
 }
@@ -456,12 +456,6 @@ int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 		return 0;
 	if (!file->f_op->fsync)
 		return -EINVAL;
-	if (!datasync && (inode->i_state & I_DIRTY_TIME)) {
-		spin_lock(&inode->i_lock);
-		inode->i_state &= ~I_DIRTY_TIME;
-		spin_unlock(&inode->i_lock);
-		mark_inode_dirty_sync(inode);
-	}
 	return file->f_op->fsync(file, start, end, datasync);
 }
 EXPORT_SYMBOL(vfs_fsync_range);
