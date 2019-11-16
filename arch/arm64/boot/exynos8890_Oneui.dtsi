@@ -506,6 +506,21 @@
 				  27  208000  837500       0 >;/* ARM L23: 200MHz */
 	};
 
+  firmware {
+		android {
+			compatible = "android,firmware";
+			fstab {
+				compatible = "android,fstab";
+				system {
+					compatible = "android,system";
+					dev = "/dev/block/platform/155a0000.ufs/by-name/SYSTEM";
+					type = "ext4";
+					mnt_flags = "ro";
+					fsmgr_flags = "wait";
+				};
+			};
+		};
+	};
 
 	memory_comp: mcomp@11170000 {
 		compatible = "samsung,exynos-mcomp";

@@ -22,6 +22,8 @@ CR_DIR=$(pwd)
 CR_TC=~/Android/Toolchains/linaro-4.9.4-aarch64-linux/bin/aarch64-linux-gnu-
 # Define proper arch and dir for dts files
 CR_DTS=arch/arm64/boot/dts
+CR_DTS_TREBLE=arch/arm64/boot/exynos8890_Treble.dtsi
+CR_DTS_ONEUI=arch/arm64/boot/exynos8890_Oneui.dtsi
 # Define boot.img out dir
 CR_OUT=$CR_DIR/Helios/Out
 # Presistant A.I.K Location
@@ -78,6 +80,7 @@ if [ "$yn" = "Y" -o "$yn" = "y" ]; then
      rm -rf $CR_DTS/.*.cmd
      rm -rf $CR_DTS/*.dtb
      rm -rf $CR_DIR/.config
+     rm -rf $CR_DTS/exynos8890.dtsi
 else
      echo "Dirty Build"
      rm -r -f $CR_DTB
@@ -85,6 +88,7 @@ else
      rm -rf $CR_DTS/.*.cmd
      rm -rf $CR_DTS/*.dtb
      rm -rf $CR_DIR/.config
+     rm -rf $CR_DTS/exynos8890.dtsi
 fi
 
 # Treble / OneUI
@@ -141,6 +145,7 @@ BUILD_ZIMAGE()
 	echo " "
 	echo "Building zImage for $CR_VARIANT"
 	export LOCALVERSION=-$CR_IMAGE_NAME
+  	cp $CR_DTB_MOUNT $CR_DTS/exynos8890.dtsi
 	echo "Make $CR_CONFIG"
 	make $CR_CONFIG
 	make -j$CR_JOBS
@@ -172,6 +177,7 @@ BUILD_DTB()
 	rm -rf $CR_DTS/.*.tmp
 	rm -rf $CR_DTS/.*.cmd
 	rm -rf $CR_DTS/*.dtb
+	rm -rf $CR_DTS/exynos8890.dtsi
 	du -k "$CR_DTB" | cut -f1 >sizdT
 	sizdT=$(head -n 1 sizdT)
 	rm -rf sizdT
@@ -220,10 +226,12 @@ do
               echo " Building Treble variant "
               CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
               CR_VARIANT=$CR_VARIANT_G930-TREBLE
+              CR_DTB_MOUNT=$CR_DTS_TREBLE
             else
               echo " Building OneUI variant "
               CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
               CR_VARIANT=$CR_VARIANT_G930-ONEUI
+              CR_DTB_MOUNT=$CR_DTS_ONEUI
             fi
             BUILD_IMAGE_NAME
             BUILD_GENERATE_CONFIG
@@ -249,10 +257,12 @@ do
               echo " Building Treble variant "
               CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
               CR_VARIANT=$CR_VARIANT_G935-TREBLE
+              CR_DTB_MOUNT=$CR_DTS_TREBLE
             else
               echo " Building OneUI variant "
               CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
               CR_VARIANT=$CR_VARIANT_G935-ONEUI
+              CR_DTB_MOUNT=$CR_DTS_ONEUI
             fi
             CR_CONFIG=$CR_CONFIG_G935
             CR_DTSFILES=$CR_DTSFILES_G935
