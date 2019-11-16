@@ -1,7 +1,7 @@
 run_program("/sbin/busybox", "mount", "/system");
 run_program("/sbin/busybox", "mount", "/data");
 ui_print("***********************");
-ui_print("* HeliosKernel");
+ui_print("* HeliosKernel V2.0");
 ui_print("* For Galaxy G930X/G935X");
 ui_print("* Android 9.0");
 ui_print("* By AnanJaser1211 @Xda");
@@ -38,8 +38,8 @@ delete_recursive("/system/priv-app/Rlc");
 delete_recursive("/system/priv-app/KnoxCore");
 delete_recursive("/system/priv-app/KnoxGuard");
 delete_recursive("/system/priv-app/EliteTuner");
-ui_print("-- Installing KernelTuner");
-delete_recursive("/system/priv-app/HK");
+delete_recursive("/system/priv-app/HK*");
+ui_print("-- Installing HKTweaks");
 #####################################################################
 #                       Phone Variant Detection
 #####################################################################
@@ -54,7 +54,7 @@ if is_substring("G935", getprop("ro.boot.bootloader")) then
 endif;
 ui_print("-- Extracting System Files...");
 package_extract_dir("Helios/system", "/system");
-ui_print("-- Installing Magisk V19.3");
+ui_print("-- Installing Magisk");
 package_extract_dir("Helios/magisk", "/tmp/magisk");
 run_program("/sbin/busybox", "unzip", "/tmp/magisk/magisk.zip", "META-INF/com/google/android/*", "-d", "/tmp/magisk");
 run_program("/sbin/busybox", "sh", "/tmp/magisk/META-INF/com/google/android/update-binary", "dummy", "1", "/tmp/magisk/magisk.zip");

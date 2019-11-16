@@ -71,5 +71,7 @@ Helios/Out/*.zip
 Helios/Product/*.img
 Helios/Product/*.img
 Helios/R/*
+Helios/Flashable/*.zip
+Helios/Flashable/Helios/device
 drivers/gator/gator_src_md5.h
 arch/arm64/configs/tmp_defconfig
