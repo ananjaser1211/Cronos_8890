@@ -57,15 +57,16 @@ export $CR_ARCH
 ##########################################
 # Device specific Variables [SM-G930X]
 CR_DTSFILES_G930="exynos8890-herolte_eur_open_08.dtb exynos8890-herolte_eur_open_09.dtb exynos8890-herolte_eur_open_10.dtb"
-CR_CONFIG_G930=herolte_defconfig
+CR_CONFIG_G930=hero_defconfig
 CR_VARIANT_G930=G930X
 # Device specific Variables [SM-G935X]
 CR_DTSFILES_G935="exynos8890-hero2lte_eur_open_00.dtb exynos8890-hero2lte_eur_open_01.dtb exynos8890-hero2lte_eur_open_03.dtb exynos8890-hero2lte_eur_open_04.dtb exynos8890-hero2lte_eur_open_08.dtb"
-CR_CONFIG_G935=hero2lte_defconfig
+CR_CONFIG_G935=hero2_defconfig
 CR_VARIANT_G935=G935X
 # Common configs
 CR_CONFIG_TREBLE=treble_defconfig
 CR_CONFIG_ONEUI=oneui_defconfig
+CR_CONFIG_G93X=herolte_defconfig
 CR_CONFIG_SPLIT=NULL
 CR_CONFIG_HELIOS=helios_defconfig
 #####################################################
@@ -243,8 +244,6 @@ do
         "SM-G930X")
             clear
             echo "Starting $CR_VARIANT_G930 kernel build..."
-            CR_CONFIG=$CR_CONFIG_G930
-            CR_DTSFILES=$CR_DTSFILES_G930
             if [ $CR_MODE = "2" ]; then
               echo " Building Treble variant "
               CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
@@ -256,6 +255,9 @@ do
               CR_VARIANT=$CR_VARIANT_G930-ONEUI
               CR_DTB_MOUNT=$CR_DTS_ONEUI
             fi
+            CR_CONFIG=$CR_CONFIG_G93X
+            CR_CONFIG_SPLIT=$CR_CONFIG_G930
+            CR_DTSFILES=$CR_DTSFILES_G930
             BUILD_IMAGE_NAME
             BUILD_GENERATE_CONFIG
             BUILD_ZIMAGE
@@ -287,7 +289,8 @@ do
               CR_VARIANT=$CR_VARIANT_G935-ONEUI
               CR_DTB_MOUNT=$CR_DTS_ONEUI
             fi
-            CR_CONFIG=$CR_CONFIG_G935
+            CR_CONFIG=$CR_CONFIG_G93X
+            CR_CONFIG_SPLIT=$CR_CONFIG_G935
             CR_DTSFILES=$CR_DTSFILES_G935
             BUILD_IMAGE_NAME
             BUILD_GENERATE_CONFIG
