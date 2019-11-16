@@ -40,7 +40,7 @@ CR_DTB=$CR_DIR/boot.img-dtb
 CR_VERSION=V1.0
 CR_NAME=HeliosKernel
 # Thread count
-CR_JOBS=$((`nproc`-1))
+CR_JOBS=$(nproc --all)
 # Target Android version
 CR_ANDROID=p
 CR_PLATFORM=9.0.0
