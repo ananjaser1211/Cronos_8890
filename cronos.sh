@@ -26,6 +26,7 @@ CR_DTS_TREBLE=arch/arm64/boot/exynos8890_Treble.dtsi
 CR_DTS_ONEUI=arch/arm64/boot/exynos8890_Oneui.dtsi
 # Define boot.img out dir
 CR_OUT=$CR_DIR/Helios/Out
+CR_PRODUCT=$CR_DIR/Helios/Product
 # Presistant A.I.K Location
 CR_AIK=$CR_DIR/Helios/A.I.K
 # Main Ramdisk Location
@@ -74,21 +75,10 @@ CR_CONFIG_HELIOS=helios_defconfig
 read -p "Clean source (y/n) > " yn
 if [ "$yn" = "Y" -o "$yn" = "y" ]; then
      echo "Clean Build"
-     make clean && make mrproper
-     rm -r -f $CR_DTB
-     rm -rf $CR_DTS/.*.tmp
-     rm -rf $CR_DTS/.*.cmd
-     rm -rf $CR_DTS/*.dtb
-     rm -rf $CR_DIR/.config
-     rm -rf $CR_DTS/exynos8890.dtsi
+     CR_CLEAN="1"
 else
      echo "Dirty Build"
-     rm -r -f $CR_DTB
-     rm -rf $CR_DTS/.*.tmp
-     rm -rf $CR_DTS/.*.cmd
-     rm -rf $CR_DTS/*.dtb
-     rm -rf $CR_DIR/.config
-     rm -rf $CR_DTS/exynos8890.dtsi
+     CR_CLEAN="0"
 fi
 
 # Treble / OneUI
@@ -100,6 +90,33 @@ else
      echo "Build OneUI Variant"
      CR_MODE="1"
 fi
+
+BUILD_CLEAN()
+{
+if [ $CR_CLEAN = 1 ]; then
+     echo " "
+     echo " Cleaning build dir"
+     make clean && make mrproper
+     rm -r -f $CR_DTB
+     rm -rf $CR_DTS/.*.tmp
+     rm -rf $CR_DTS/.*.cmd
+     rm -rf $CR_DTS/*.dtb
+     rm -rf $CR_DIR/.config
+     rm -rf $CR_DTS/exynos8890.dtsi
+     rm -rf $CR_OUT/*.img
+     rm -rf $CR_OUT/*.zip
+fi
+if [ $CR_CLEAN = 0 ]; then
+     echo " "
+     echo " Skip Full cleaning"
+     rm -r -f $CR_DTB
+     rm -rf $CR_DTS/.*.tmp
+     rm -rf $CR_DTS/.*.cmd
+     rm -rf $CR_DTS/*.dtb
+     rm -rf $CR_DIR/.config
+     rm -rf $CR_DTS/exynos8890.dtsi
+fi
+}
 
 BUILD_IMAGE_NAME()
 {
@@ -113,6 +130,8 @@ BUILD_GENERATE_CONFIG()
 	echo " "
 	echo "Building deconfig for $CR_VARIANT"
   echo " "
+  # Respect CLEAN build rules
+  BUILD_CLEAN
   if [ -e $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig ]; then
     echo " cleanup old configs "
     rm -rf $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
@@ -199,6 +218,8 @@ PACK_BOOT_IMG()
 	$CR_AIK/repackimg.sh
 	# Remove red warning at boot
 	echo -n "SEANDROIDENFORCE" » $CR_AIK/image-new.img
+	# Copy boot.img to Production folder
+	cp $CR_AIK/image-new.img $CR_PRODUCT/$CR_IMAGE_NAME.img
 	# Move boot.img to out dir
 	mv $CR_AIK/image-new.img $CR_OUT/$CR_IMAGE_NAME.img
 	du -k "$CR_OUT/$CR_IMAGE_NAME.img" | cut -f1 >sizkT
@@ -206,6 +227,8 @@ PACK_BOOT_IMG()
 	rm -rf sizkT
 	echo " "
 	$CR_AIK/cleanup.sh
+	# Respect CLEAN build rules
+	BUILD_CLEAN
 }
 # Main Menu
 clear
