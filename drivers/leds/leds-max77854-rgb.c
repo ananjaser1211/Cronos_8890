@@ -26,7 +26,6 @@
 #include <linux/uaccess.h>
 #include <linux/regmap.h>
 #include <linux/sec_sysfs.h>
-#include <linux/sysfs_helpers.h>
 
 #define SEC_LED_SPECIFIC
 
@@ -42,25 +41,7 @@
 	MAX77854_RGBLED_REG_LEDBLNK         = 0x38,
 	MAX77854_LED_REG_END,
 };*/
-#ifdef SEC_LED_SPECIFIC
-static struct leds_control {
-    u8 	current_low;
-    u8 	current_high;
-    u16 	noti_ramp_control;
-    u16 	noti_ramp_up;
-    u16 	noti_ramp_down;
-    u16 	noti_delay_on;
-    u16 	noti_delay_off;
-} leds_control = {
-    .current_low = 5,
-    .current_high = 40,
-    .noti_ramp_control = 1,
-    .noti_ramp_up = 800,
-    .noti_ramp_down = 1000,
-    .noti_delay_on = 500,
-    .noti_delay_off = 5000,
-};
-#endif
+
 /* MAX77854_REG_LED0BRT */
 #define MAX77854_LED0BRT	0xFF
 
@@ -613,7 +594,6 @@ static ssize_t store_max77854_rgb_lowpower(struct device *dev,
 {
 	int ret;
 	u8 led_lowpower;
-	struct max77854_rgb *max77854_rgb = dev_get_drvdata(dev);
 
 	ret = kstrtou8(buf, 0, &led_lowpower);
 	if (ret != 0) {
@@ -622,11 +602,6 @@ static ssize_t store_max77854_rgb_lowpower(struct device *dev,
 	}
 
 	led_lowpower_mode = led_lowpower;
-	led_dynamic_current = (led_lowpower_mode) ? leds_control.current_low : leds_control.current_high;
-
-	max77854_rgb_set_state(&max77854_rgb->led[RED], led_dynamic_current, LED_BLINK);
-	max77854_rgb_set_state(&max77854_rgb->led[GREEN], led_dynamic_current, LED_BLINK);
-	max77854_rgb_set_state(&max77854_rgb->led[BLUE], led_dynamic_current, LED_BLINK);
 
 	pr_info("leds-max77854-rgb: led_lowpower mode set to %i\n", led_lowpower);
 
@@ -637,7 +612,6 @@ static ssize_t store_max77854_rgb_brightness(struct device *dev,
 					const char *buf, size_t count)
 {
 	int ret;
-	u8 max_brightness;
 	u8 brightness;
 	pr_info("leds-max77854-rgb: %s\n", __func__);
 
@@ -649,8 +623,8 @@ static ssize_t store_max77854_rgb_brightness(struct device *dev,
 
 	led_lowpower_mode = 0;
 
-	max_brightness = (led_lowpower_mode) ? leds_control.current_low : leds_control.current_high;
-	brightness = (brightness * max_brightness) / LED_MAX_CURRENT;
+	if (brightness > LED_MAX_CURRENT)
+		brightness = LED_MAX_CURRENT;
 
 	led_dynamic_current = brightness;
 
@@ -691,30 +665,23 @@ static ssize_t store_max77854_rgb_pattern(struct device *dev,
 		max77854_rgb_set_state(&max77854_rgb->led[RED], led_dynamic_current, LED_ALWAYS_ON);
 		break;
 	case CHARGING_ERR:
-	if (leds_control.noti_ramp_control == 1)
-		max77854_rgb_ramp(dev, leds_control.noti_ramp_up, leds_control.noti_ramp_down);
 		max77854_rgb_blink(dev, 500, 500);
 		max77854_rgb_set_state(&max77854_rgb->led[RED], led_dynamic_current, LED_BLINK);
 		break;
 	case MISSED_NOTI:
-	if (leds_control.noti_ramp_control == 1)
-		max77854_rgb_ramp(dev, leds_control.noti_ramp_up, leds_control.noti_ramp_down);
-		max77854_rgb_blink(dev, leds_control.noti_delay_on, leds_control.noti_delay_off);
+		max77854_rgb_blink(dev, 500, 5000);
 		max77854_rgb_set_state(&max77854_rgb->led[BLUE], led_dynamic_current, LED_BLINK);
 		break;
 	case LOW_BATTERY:
-	if (leds_control.noti_ramp_control == 1)
-		max77854_rgb_ramp(dev, leds_control.noti_ramp_up, leds_control.noti_ramp_down);
-		max77854_rgb_blink(dev, leds_control.noti_delay_on, leds_control.noti_delay_off);
+		max77854_rgb_blink(dev, 500, 5000);
 		max77854_rgb_set_state(&max77854_rgb->led[RED], led_dynamic_current, LED_BLINK);
 		break;
 	case FULLY_CHARGED:
 		max77854_rgb_set_state(&max77854_rgb->led[GREEN], led_dynamic_current, LED_ALWAYS_ON);
 		break;
 	case POWERING:
-	if (leds_control.noti_ramp_control == 1)
-		max77854_rgb_ramp(dev, leds_control.noti_ramp_up, leds_control.noti_ramp_down);
-		max77854_rgb_blink(dev, leds_control.noti_delay_on, leds_control.noti_delay_off);
+		max77854_rgb_ramp(dev, 800, 800);
+		max77854_rgb_blink(dev, 200, 200);
 		max77854_rgb_set_state(&max77854_rgb->led[BLUE], led_dynamic_current, LED_ALWAYS_ON);
 		max77854_rgb_set_state(&max77854_rgb->led[GREEN], led_dynamic_current, LED_BLINK);
 		break;
@@ -821,11 +788,9 @@ static ssize_t store_max77854_rgb_blink(struct device *dev,
 	}
 
 	/*Set LED blink mode*/
-	if (leds_control.noti_ramp_control == 1)
-	max77854_rgb_ramp(dev, leds_control.noti_ramp_up, leds_control.noti_ramp_down);
 	max77854_rgb_blink(dev, delay_on_time, delay_off_time);
 
-	pr_info("leds-max77854-rgb: %s, delay_on_time: %d, delay_off_time: %d, color: 0x%x, lowpower: %i\n",
+	pr_info("leds-max77854-rgb: %s, delay_on_time: %d, delay_off_time: %d, color: 0x%x, lowpower: %i\n", 
 			__func__, delay_on_time, delay_off_time, led_brightness, led_lowpower_mode);
 
 	return count;
@@ -989,111 +954,6 @@ static DEVICE_ATTR(delay_off, 0640, led_delay_off_show, led_delay_off_store);
 static DEVICE_ATTR(blink, 0640, NULL, led_blink_store);
 
 #ifdef SEC_LED_SPECIFIC
-static ssize_t show_leds_property(struct device *dev,
-                                  struct device_attribute *attr, char *buf);
-
-static ssize_t store_leds_property(struct device *dev,
-                                   struct device_attribute *attr,
-                                   const char *buf, size_t len);
-
-#define LEDS_ATTR(_name)				\
-{							\
-.attr = {					\
-.name = #_name,			\
-.mode = S_IRUGO | S_IWUSR | S_IWGRP,	\
-},					\
-.show = show_leds_property,			\
-.store = store_leds_property,			\
-}
-
-static struct device_attribute leds_control_attrs[] = {
-    LEDS_ATTR(led_lowpower_current),
-    LEDS_ATTR(led_highpower_current),
-    LEDS_ATTR(led_notification_ramp_control),
-    LEDS_ATTR(led_notification_ramp_up),
-    LEDS_ATTR(led_notification_ramp_down),
-    LEDS_ATTR(led_notification_delay_on),
-    LEDS_ATTR(led_notification_delay_off),
-};
-
-enum {
-    LOWPOWER_CURRENT = 0,
-    HIGHPOWER_CURRENT,
-	NOTIFICATION_RAMP_CONTROL,
-    NOTIFICATION_RAMP_UP,
-    NOTIFICATION_RAMP_DOWN,
-    NOTIFICATION_DELAY_ON,
-    NOTIFICATION_DELAY_OFF,
-};
-
-static ssize_t show_leds_property(struct device *dev,
-                                  struct device_attribute *attr, char *buf)
-{
-    const ptrdiff_t offset = attr - leds_control_attrs;
-
-    switch (offset) {
-        case LOWPOWER_CURRENT:
-            return sprintf(buf, "%d", leds_control.current_low);
-        case HIGHPOWER_CURRENT:
-            return sprintf(buf, "%d", leds_control.current_high);
-        case NOTIFICATION_RAMP_CONTROL:
-            return sprintf(buf, "%d", leds_control.noti_ramp_control);
-        case NOTIFICATION_RAMP_UP:
-            return sprintf(buf, "%d", leds_control.noti_ramp_up);
-        case NOTIFICATION_RAMP_DOWN:
-            return sprintf(buf, "%d", leds_control.noti_ramp_down);
-        case NOTIFICATION_DELAY_ON:
-            return sprintf(buf, "%d", leds_control.noti_delay_on);
-        case NOTIFICATION_DELAY_OFF:
-            return sprintf(buf, "%d", leds_control.noti_delay_off);
-    }
-
-    return -EINVAL;
-}
-
-static ssize_t store_leds_property(struct device *dev,
-                                   struct device_attribute *attr,
-                                   const char *buf, size_t len)
-{
-    int val;
-    const ptrdiff_t offset = attr - leds_control_attrs;
-
-    if(sscanf(buf, "%d", &val) != 1)
-        return -EINVAL;
-
-    switch (offset) {
-        case LOWPOWER_CURRENT:
-            sanitize_min_max(val, 0, LED_MAX_CURRENT);
-            leds_control.current_low = val;
-            break;
-        case HIGHPOWER_CURRENT:
-            sanitize_min_max(val, 0, LED_MAX_CURRENT);
-            leds_control.current_high = val;
-            break;
-	case NOTIFICATION_RAMP_CONTROL:
-            sanitize_min_max(val, 0, 1);
-            leds_control.noti_ramp_control = val;
-            break;
-	case NOTIFICATION_RAMP_UP:
-            sanitize_min_max(val, 0, 2000);
-            leds_control.noti_ramp_up = val;
-            break;
-        case NOTIFICATION_RAMP_DOWN:
-            sanitize_min_max(val, 0, 2000);
-            leds_control.noti_ramp_down = val;
-            break;
-	case NOTIFICATION_DELAY_ON:
-            sanitize_min_max(val, 0, 10000);
-            leds_control.noti_delay_on = val;
-            break;
-        case NOTIFICATION_DELAY_OFF:
-            sanitize_min_max(val, 0, 10000);
-            leds_control.noti_delay_off = val;
-            break;
-    }
-
-    return len;
-}
 /* below nodes is SAMSUNG specific nodes */
 static DEVICE_ATTR(led_r, 0660, NULL, store_led_r);
 static DEVICE_ATTR(led_g, 0660, NULL, store_led_g);
@@ -1204,10 +1064,6 @@ static int max77854_rgb_probe(struct platform_device *pdev)
 	if (ret < 0) {
 		dev_err(dev, "Failed to create sysfs group for samsung specific led\n");
 		goto device_create_err;
-	}
-
-	for(i = 0; i < ARRAY_SIZE(leds_control_attrs); i++) {
-		ret = sysfs_create_file(&led_dev->kobj, &leds_control_attrs[i].attr);
 	}
 
 	platform_set_drvdata(pdev, max77854_rgb);
