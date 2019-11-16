@@ -209,7 +209,6 @@ PACK_BOOT_IMG()
 	echo "----------------------------------------------"
 	echo " "
 	echo "Building Boot.img for $CR_VARIANT"
-	cp -rf $CR_RAMDISK/* $CR_AIK
 	# Copy Ramdisk
 	cp -rf $CR_RAMDISK/* $CR_AIK
 	# Move Compiled kernel and dtb to A.I.K Folder
@@ -249,6 +248,7 @@ do
               CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
               CR_VARIANT=$CR_VARIANT_G930-TREBLE
               CR_DTB_MOUNT=$CR_DTS_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_TREBLE
             else
               echo " Building OneUI variant "
               CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
@@ -283,6 +283,7 @@ do
               CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
               CR_VARIANT=$CR_VARIANT_G935-TREBLE
               CR_DTB_MOUNT=$CR_DTS_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_TREBLE
             else
               echo " Building OneUI variant "
               CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
