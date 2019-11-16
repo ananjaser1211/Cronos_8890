@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Cronos Build Script V3.3
+# Cronos Build Script V4.0
 # For Exynos8890
 # Coded by AnanJaser1211 @2019
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,48 +53,85 @@ export PLATFORM_VERSION=$CR_PLATFORM
 export $CR_ARCH
 ##########################################
 # Device specific Variables [SM-G930X]
-CR_DTSFILES_G930F="exynos8890-herolte_eur_open_08.dtb exynos8890-herolte_eur_open_09.dtb exynos8890-herolte_eur_open_10.dtb"
-CR_CONFG_G930=herolte_defconfig
+CR_DTSFILES_G930="exynos8890-herolte_eur_open_08.dtb exynos8890-herolte_eur_open_09.dtb exynos8890-herolte_eur_open_10.dtb"
+CR_CONFIG_G930=herolte_defconfig
 CR_VARIANT_G930=G930X
 # Device specific Variables [SM-G935X]
 CR_DTSFILES_G935="exynos8890-hero2lte_eur_open_00.dtb exynos8890-hero2lte_eur_open_01.dtb exynos8890-hero2lte_eur_open_03.dtb exynos8890-hero2lte_eur_open_04.dtb exynos8890-hero2lte_eur_open_08.dtb"
-CR_CONFG_G935=hero2lte_defconfig
+CR_CONFIG_G935=hero2lte_defconfig
 CR_VARIANT_G935=G935X
-##########################################
+# Common configs
+CR_CONFIG_SPLIT=NULL
+CR_CONFIG_HELIOS=helios_defconfig
+#####################################################
+
 # Script functions
 
 read -p "Clean source (y/n) > " yn
 if [ "$yn" = "Y" -o "$yn" = "y" ]; then
-     echo "Clean Build"    
-     make clean && make mrproper    
+     echo "Clean Build"
+     make clean && make mrproper
      rm -r -f $CR_DTB
      rm -rf $CR_DTS/.*.tmp
      rm -rf $CR_DTS/.*.cmd
-     rm -rf $CR_DTS/*.dtb      
+     rm -rf $CR_DTS/*.dtb
+     rm -rf $CR_DIR/.config
 else
      echo "Dirty Build"
      rm -r -f $CR_DTB
      rm -rf $CR_DTS/.*.tmp
      rm -rf $CR_DTS/.*.cmd
-     rm -rf $CR_DTS/*.dtb          
+     rm -rf $CR_DTS/*.dtb
+     rm -rf $CR_DIR/.config
 fi
+
+BUILD_IMAGE_NAME()
+{
+	CR_IMAGE_NAME=$CR_NAME-$CR_VERSION-$CR_VARIANT-$CR_DATE
+}
+
+BUILD_GENERATE_CONFIG()
+{
+  # Only use for devices that are unified with 2 or more configs
+  echo "----------------------------------------------"
+	echo " "
+	echo "Building deconfig for $CR_VARIANT"
+  echo " "
+  if [ -e $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig ]; then
+    echo " cleanup old configs "
+    rm -rf $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  fi
+  echo " Copy $CR_CONFIG "
+  cp -f $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  if [ $CR_CONFIG_SPLIT = NULL ]; then
+    echo " No split config support! "
+  else
+    echo " Copy $CR_CONFIG_SPLIT "
+    cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_SPLIT >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  fi
+  echo " Copy $CR_CONFIG_HELIOS "
+  cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_HELIOS >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  echo " Set $CR_VARIANT to generated config "
+  CR_CONFIG=tmp_defconfig
+}
 
 BUILD_ZIMAGE()
 {
 	echo "----------------------------------------------"
 	echo " "
 	echo "Building zImage for $CR_VARIANT"
-	export LOCALVERSION=-$CR_NAME-$CR_VERSION-$CR_VARIANT-$CR_DATE
-	make  $CR_CONFG
+	export LOCALVERSION=-$CR_IMAGE_NAME
+	echo "Make $CR_CONFIG"
+	make $CR_CONFIG
 	make -j$CR_JOBS
 	if [ ! -e ./arch/arm64/boot/Image ]; then
 	exit 0;
-	echo "zImage Failed to Compile"
+	echo "Image Failed to Compile"
 	echo " Abort "
 	fi
 	du -k "$CR_KERNEL" | cut -f1 >sizT
 	sizT=$(head -n 1 sizT)
-	rm -rf sizT 
+	rm -rf sizT
 	echo " "
 	echo "----------------------------------------------"
 }
@@ -111,12 +148,12 @@ BUILD_DTB()
 	exit 0;
 	echo "DTB Failed to Compile"
 	echo " Abort "
-	fi    
+	fi
 	rm -rf $CR_DTS/.*.tmp
 	rm -rf $CR_DTS/.*.cmd
 	rm -rf $CR_DTS/*.dtb
 	du -k "$CR_DTB" | cut -f1 >sizdT
-	sizdT=$(head -n 1 sizdT)    
+	sizdT=$(head -n 1 sizdT)
 	rm -rf sizdT
 	echo " "
 	echo "----------------------------------------------"
@@ -137,30 +174,11 @@ PACK_BOOT_IMG()
 	# Remove red warning at boot
 	echo -n "SEANDROIDENFORCE" » $CR_AIK/image-new.img
 	# Move boot.img to out dir
-	mv $CR_AIK/image-new.img $CR_OUT/$CR_NAME-$CR_VERSION-$CR_DATE-$CR_VARIANT.img
-	du -k "$CR_OUT/$CR_NAME-$CR_VERSION-$CR_DATE-$CR_VARIANT.img" | cut -f1 >sizkT
+	mv $CR_AIK/image-new.img $CR_OUT/$CR_IMAGE_NAME.img
+	du -k "$CR_OUT/$CR_IMAGE_NAME.img" | cut -f1 >sizkT
 	sizkT=$(head -n 1 sizkT)
 	rm -rf sizkT
 	echo " "
-	$CR_AIK/cleanup.sh
-}
-PACK_BOOT_IMG_TREBLE()
-{
-	echo "----------------------------------------------"
-	echo " "
-	echo "Building Boot.img for $CR_VARIANT"
-	cp -rf $CR_RAMDISK_TREBLE/* $CR_AIK
-	# Copy Ramdisk
-	cp -rf $CR_RAMDISK_TREBLE/* $CR_AIK
-	# Move Compiled kernel and dtb to A.I.K Folder
-	mv $CR_KERNEL $CR_AIK/split_img/boot.img-zImage
-	mv $CR_DTB $CR_AIK/split_img/boot.img-dtb
-	# Create boot.img
-	$CR_AIK/repackimg.sh
-	# Remove red warning at boot
-	echo -n "SEANDROIDENFORCE" » $CR_AIK/image-new.img
-	# Move boot.img to out dir
-	mv $CR_AIK/image-new.img $CR_OUT/$CR_NAME-$CR_VERSION-$CR_DATE-$CR_VARIANT.img
 	$CR_AIK/cleanup.sh
 }
 # Main Menu
@@ -177,8 +195,10 @@ do
             clear
             echo "Starting $CR_VARIANT_G930 kernel build..."
             CR_VARIANT=$CR_VARIANT_G930
-            CR_CONFG=$CR_CONFG_G930
+            CR_CONFIG=$CR_CONFIG_G930
             CR_DTSFILES=$CR_DTSFILES_G930
+            BUILD_IMAGE_NAME
+            BUILD_GENERATE_CONFIG
             BUILD_ZIMAGE
             BUILD_DTB
             PACK_BOOT_IMG
@@ -188,7 +208,7 @@ do
             echo "Compiled DTB Size = $sizdT Kb"
             echo "Kernel Image Size = $sizT Kb"
             echo "Boot Image   Size = $sizkT Kb"
-            echo "$CR_OUT/$CR_NAME-$CR_VERSION-$CR_DATE-$CR_VARIANT.img Ready"                         
+            echo "$CR_OUT/$CR_IMAGE_NAME.img Ready"
             echo "Press Any key to end the script"
             echo "----------------------------------------------"
             read -n1 -r key
@@ -198,8 +218,10 @@ do
             clear
             echo "Starting $CR_VARIANT_G935 kernel build..."
             CR_VARIANT=$CR_VARIANT_G935
-            CR_CONFG=$CR_CONFG_G935
+            CR_CONFIG=$CR_CONFIG_G935
             CR_DTSFILES=$CR_DTSFILES_G935
+            BUILD_IMAGE_NAME
+            BUILD_GENERATE_CONFIG
             BUILD_ZIMAGE
             BUILD_DTB
             PACK_BOOT_IMG
@@ -209,7 +231,7 @@ do
             echo "Compiled DTB Size = $sizdT Kb"
             echo "Kernel Image Size = $sizT Kb"
             echo "Boot Image   Size = $sizkT Kb"
-            echo "$CR_OUT/$CR_NAME-$CR_VERSION-$CR_DATE-$CR_VARIANT.img Ready"                         
+            echo "$CR_OUT/$CR_IMAGE_NAME.img Ready"
             echo "Press Any key to end the script"
             echo "----------------------------------------------"
             read -n1 -r key
