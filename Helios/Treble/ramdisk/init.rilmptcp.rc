@@ -1,0 +1,15 @@
+#create mptcp folder 
+on post-fs-data
+    mkdir /data/mptcp 0770 system system 
+# redsocks
+service redsocks /system/bin/redsocks -c /data/mptcp/redsocks.conf
+    class main
+    user system
+    group system net_raw net_admin net_bw_acct inet
+    disabled
+# ikev2-client
+service ikev2-client /system/bin/ikev2-client
+    class main
+    user system
+    group system net_raw net_admin
+    disabled
