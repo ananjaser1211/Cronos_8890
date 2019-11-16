@@ -61,6 +61,8 @@ CR_DTSFILES_G935="exynos8890-hero2lte_eur_open_00.dtb exynos8890-hero2lte_eur_op
 CR_CONFIG_G935=hero2lte_defconfig
 CR_VARIANT_G935=G935X
 # Common configs
+CR_CONFIG_TREBLE=treble_defconfig
+CR_CONFIG_ONEUI=oneui_defconfig
 CR_CONFIG_SPLIT=NULL
 CR_CONFIG_HELIOS=helios_defconfig
 #####################################################
@@ -83,6 +85,16 @@ else
      rm -rf $CR_DTS/.*.cmd
      rm -rf $CR_DTS/*.dtb
      rm -rf $CR_DIR/.config
+fi
+
+# Treble / OneUI
+read -p "Variant? (1 (oneUI) | 2 (Treble) > " aud
+if [ "$aud" = "Treble" -o "$aud" = "2" ]; then
+     echo "Build Treble Variant"
+     CR_MODE="2"
+else
+     echo "Build OneUI Variant"
+     CR_MODE="1"
 fi
 
 BUILD_IMAGE_NAME()
@@ -109,6 +121,14 @@ BUILD_GENERATE_CONFIG()
     echo " Copy $CR_CONFIG_SPLIT "
     cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_SPLIT >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   fi
+  if [ $CR_MODE = 2 ]; then
+    echo " Copy $CR_CONFIG_TYPE "
+    cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_TYPE >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  fi
+  if [ $CR_MODE = 1 ]; then
+    echo " Copy $CR_CONFIG_TYPE "
+    cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_TYPE >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  fi
   echo " Copy $CR_CONFIG_HELIOS "
   cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_HELIOS >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   echo " Set $CR_VARIANT to generated config "
@@ -124,7 +144,7 @@ BUILD_ZIMAGE()
 	echo "Make $CR_CONFIG"
 	make $CR_CONFIG
 	make -j$CR_JOBS
-	if [ ! -e ./arch/arm64/boot/Image ]; then
+	if [ ! -e $CR_KERNEL ]; then
 	exit 0;
 	echo "Image Failed to Compile"
 	echo " Abort "
@@ -194,9 +214,17 @@ do
         "SM-G930X")
             clear
             echo "Starting $CR_VARIANT_G930 kernel build..."
-            CR_VARIANT=$CR_VARIANT_G930
             CR_CONFIG=$CR_CONFIG_G930
             CR_DTSFILES=$CR_DTSFILES_G930
+            if [ $CR_MODE = "2" ]; then
+              echo " Building Treble variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
+              CR_VARIANT=$CR_VARIANT_G930-TREBLE
+            else
+              echo " Building OneUI variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
+              CR_VARIANT=$CR_VARIANT_G930-ONEUI
+            fi
             BUILD_IMAGE_NAME
             BUILD_GENERATE_CONFIG
             BUILD_ZIMAGE
@@ -217,7 +245,15 @@ do
         "SM-G935X")
             clear
             echo "Starting $CR_VARIANT_G935 kernel build..."
-            CR_VARIANT=$CR_VARIANT_G935
+            if [ $CR_MODE = "2" ]; then
+              echo " Building Treble variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
+              CR_VARIANT=$CR_VARIANT_G935-TREBLE
+            else
+              echo " Building OneUI variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
+              CR_VARIANT=$CR_VARIANT_G935-ONEUI
+            fi
             CR_CONFIG=$CR_CONFIG_G935
             CR_DTSFILES=$CR_DTSFILES_G935
             BUILD_IMAGE_NAME

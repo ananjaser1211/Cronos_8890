@@ -1,0 +1,6 @@
+#
+#
+# Treble defconfig
+#
+# CONFIG_USB_ANDROID_SAMSUNG_MTP is not set
+CONFIG_NETFILTER_XT_TARGET_CT=y
