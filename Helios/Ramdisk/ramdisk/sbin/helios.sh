@@ -167,11 +167,10 @@ mount -o remount,ro -t auto /system
 mount -o remount,rw /data
 mount -o remount,rw /cache
 
-   log_print "Start RefinedLogger"
+   #log_print "Start RefinedLogger"
 
    log_print "**helios early boot script finished at $( date +"%d-%m-%Y %H:%M:%S" )**"
    log_print "------------------------------------------------------"
 
    # RefinedLogger
-/system/bin/logcat *:E > /data/helios/Refined_logger.log
-
+#/system/bin/logcat *:E > /data/helios/Refined_logger.log
