@@ -269,7 +269,7 @@ do
             echo "Compiled DTB Size = $sizdT Kb"
             echo "Kernel Image Size = $sizT Kb"
             echo "Boot Image   Size = $sizkT Kb"
-            echo "$CR_OUT/$CR_IMAGE_NAME.img Ready"
+            echo "$CR_PRODUCT/$CR_IMAGE_NAME.img Ready"
             echo "Press Any key to end the script"
             echo "----------------------------------------------"
             read -n1 -r key
@@ -304,7 +304,7 @@ do
             echo "Compiled DTB Size = $sizdT Kb"
             echo "Kernel Image Size = $sizT Kb"
             echo "Boot Image   Size = $sizkT Kb"
-            echo "$CR_OUT/$CR_IMAGE_NAME.img Ready"
+            echo "$CR_PRODUCT/$CR_IMAGE_NAME.img Ready"
             echo "Press Any key to end the script"
             echo "----------------------------------------------"
             read -n1 -r key
