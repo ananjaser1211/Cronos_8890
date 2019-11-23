@@ -60,6 +60,9 @@ on init
     # Link /odm to /system/odm for devices without a ODM partition (csc/omc v5).
     symlink /system/odm /odm
 
+    # Link /product to /system/product for devices without a product partition.
+    symlink /system/product /product
+
     # MirrorLink permission
     mkdir /dev/socket/mlaudio 0770 audioserver system
 
@@ -470,10 +473,6 @@ on late-fs
     # HALs required before storage encryption can get unlocked (FBE/FDE)
     class_start early_hal
 
-    # For kperfmond.
-    chown system log /data/log/remaining_olog
-    chmod 0440 /data/log/remaining_olog
-
 on post-fs-data
 
     # We chown/chmod /data again so because mount is run as root + defaults
@@ -493,10 +492,6 @@ on post-fs-data
     chmod 0771 /carrier
     restorecon /carrier
 
-    chown system system /dqmdbg
-    chmod 0770 /dqmdbg
-    restorecon /dqmdbg
-
     # Samsung ODE
     chown system system /keydata
     chmod 0771 /keydata
@@ -512,6 +507,16 @@ on post-fs-data
     chmod 0660 /dev/t-base-tui
     chown system system /dev/t-base-tui
     start mobicore
+
+
+    # snap gpu kernel
+    mkdir /efs/snap 0755 cameraserver cameraserver
+    copy /vendor/etc/snap_gpu_kernel_32.bin /efs/snap/snap_gpu_kernel_32.bin
+    copy /vendor/etc/snap_gpu_kernel_64.bin /efs/snap/snap_gpu_kernel_64.bin
+    chown cameraserver cameraserver /efs/snap/snap_gpu_kernel_32.bin
+    chown cameraserver cameraserver /efs/snap/snap_gpu_kernel_64.bin
+    chmod 0755 /efs/snap/snap_gpu_kernel_32.bin
+    chmod 0755 /efs/snap/snap_gpu_kernel_64.bin
 
     # icd
     check_icd
@@ -1015,12 +1020,6 @@ on boot
     # Assume SMP uses shared cpufreq policy for all CPUs
     chown system system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
     chmod 0660 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
-
-    # Permission for DVFS helper
-    chown system radio /sys/power/cpufreq_min_limit
-    chmod 0664 /sys/power/cpufreq_min_limit
-    chown system radio /sys/power/cpufreq_max_limit
-    chmod 0664 /sys/power/cpufreq_max_limit
 
 	# permission for CHARGING
 	mkdir /efs/Battery 0775 radio system
