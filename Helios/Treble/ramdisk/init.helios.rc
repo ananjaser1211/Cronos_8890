@@ -6,14 +6,9 @@
 # HeliosKernel 2019
 #
 on early-init
-    exec u:r:init:s0 root root -- /vendor/etc/nuke.sh
-    start nuke
 
 on boot
-
-on property:sys.boot_completed=1
-	# Force cinema mode
-    write /sys/class/mdnie/mdnie/mode 4
+    start nuke
 
 on fs
 
@@ -21,7 +16,7 @@ service main /sbin/helios.sh
     user root
     seclabel u:r:init:s0
     oneshot
-    disabled     
+    disabled
 
 service zipalign /sbin/zipalign.sh
     user root
@@ -39,7 +34,7 @@ service nuke /vendor/etc/nuke.sh
     user root
     seclabel u:r:init:s0
     oneshot
-    disabled    
+    disabled
 
 on property:sys.boot_completed=1
     stop proca
@@ -48,5 +43,8 @@ on property:sys.boot_completed=1
     start zipalign
     start initd
 
-   # Run
+# Force cinema mode
+    write /sys/class/mdnie/mdnie/mode 4
+
+# Run
    exec u:r:magisk:s0 root root -- /sbin/helios.sh
