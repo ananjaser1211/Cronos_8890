@@ -10,19 +10,11 @@ on boot
     write /sys/class/android_usb/android0/iSerial ${ro.serialno}
     write /sys/class/android_usb/android0/f_mass_storage/inquiry_string "Samsung"
 
-on post-fs
+on fs
     mkdir /dev/usb-ffs 0770 shell shell
     mkdir /dev/usb-ffs/adb 0770 shell shell
     mount functionfs adb /dev/usb-ffs/adb uid=2000,gid=2000
     write /sys/class/android_usb/android0/f_ffs/aliases adb
-
-on property:sys.usb.config=mtp
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 04e8
-    write /sys/class/android_usb/android0/idProduct 6860
-    write /sys/class/android_usb/android0/functions ${sys.usb.config}
-    write /sys/class/android_usb/android0/enable 1
-    setprop sys.usb.state ${sys.usb.config}
 
 on property:sys.usb.config=adb
     write /sys/class/android_usb/android0/enable 0
@@ -31,6 +23,22 @@ on property:sys.usb.config=adb
     write /sys/class/android_usb/android0/functions ${sys.usb.config}
     write /sys/class/android_usb/android0/enable 1
     start adbd
+    setprop sys.usb.state ${sys.usb.config}
+
+on property:sys.usb.config=charging
+    write /sys/class/android_usb/android0/enable 0
+    write /sys/class/android_usb/android0/idVendor 04e8
+    write /sys/class/android_usb/android0/idProduct 685B
+    write /sys/class/android_usb/android0/functions ${sys.usb.config}
+    write /sys/class/android_usb/android0/enable 1
+    setprop sys.usb.state ${sys.usb.config}
+
+on property:sys.usb.config=mtp
+    write /sys/class/android_usb/android0/enable 0
+    write /sys/class/android_usb/android0/idVendor 04e8
+    write /sys/class/android_usb/android0/idProduct 6860
+    write /sys/class/android_usb/android0/functions ${sys.usb.config}
+    write /sys/class/android_usb/android0/enable 1
     setprop sys.usb.state ${sys.usb.config}
 
 on property:sys.usb.config=mtp,adb
@@ -271,4 +279,4 @@ on property:sys.usb.config=mtp,conn_gadget,adb
     write /sys/class/android_usb/android0/bDeviceClass 0
     write /sys/class/android_usb/android0/enable 1
     start adbd
-    setprop sys.usb.state ${sys.usb.config}   
+    setprop sys.usb.state ${sys.usb.config}
