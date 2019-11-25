@@ -66,6 +66,7 @@ CR_VARIANT_G935=G935X
 # Common configs
 CR_CONFIG_TREBLE=treble_defconfig
 CR_CONFIG_ONEUI=oneui_defconfig
+CR_CONFIG_TREBLE_ONEUI=treble-oneui_defconfig
 CR_CONFIG_G93X=herolte_defconfig
 CR_CONFIG_SPLIT=NULL
 CR_CONFIG_HELIOS=helios_defconfig
@@ -83,13 +84,18 @@ else
 fi
 
 # Treble / OneUI
-read -p "Variant? (1 (oneUI) | 2 (Treble) > " aud
-if [ "$aud" = "Treble" -o "$aud" = "2" ]; then
-     echo "Build Treble Variant"
-     CR_MODE="2"
-else
-     echo "Build OneUI Variant"
+read -p "Variant? (1 (OneUI-Treble) | 2 (AOSP-Treble) | 3 (OneUI) > " aud
+if [ "$aud" = "1" ]; then
+     echo "Build OneUI-Treble Variant"
      CR_MODE="1"
+fi
+if [ "$aud" = "2" ]; then
+     echo "Build AOSP-Treble Variant"
+     CR_MODE="2"
+fi
+if [ "$aud" = "3" ]; then
+     echo "Build OneUI Variant"
+     CR_MODE="3"
 fi
 
 BUILD_CLEAN()
@@ -243,16 +249,24 @@ do
         "SM-G930X")
             clear
             echo "Starting $CR_VARIANT_G930 kernel build..."
-            if [ $CR_MODE = "2" ]; then
-              echo " Building Treble variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
-              CR_VARIANT=$CR_VARIANT_G930-TREBLE
+            if [ $CR_MODE = "1" ]; then
+              echo " Building Oneui-Treble variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE_ONEUI
+              CR_VARIANT=$CR_VARIANT_G930-TrebleTW
               CR_DTB_MOUNT=$CR_DTS_TREBLE
               CR_RAMDISK=$CR_RAMDISK_TREBLE
-            else
+            fi
+            if [ $CR_MODE = "2" ]; then
+              echo " Building AOSP-Treble variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
+              CR_VARIANT=$CR_VARIANT_G930-Treble
+              CR_DTB_MOUNT=$CR_DTS_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_TREBLE
+            fi
+            if [ $CR_MODE = "3" ]; then
               echo " Building OneUI variant "
               CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
-              CR_VARIANT=$CR_VARIANT_G930-ONEUI
+              CR_VARIANT=$CR_VARIANT_G930-TW
               CR_DTB_MOUNT=$CR_DTS_ONEUI
             fi
             CR_CONFIG=$CR_CONFIG_G93X
@@ -278,16 +292,24 @@ do
         "SM-G935X")
             clear
             echo "Starting $CR_VARIANT_G935 kernel build..."
-            if [ $CR_MODE = "2" ]; then
-              echo " Building Treble variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
-              CR_VARIANT=$CR_VARIANT_G935-TREBLE
+            if [ $CR_MODE = "1" ]; then
+              echo " Building Oneui-Treble variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE_ONEUI
+              CR_VARIANT=$CR_VARIANT_G935-TrebleTW
               CR_DTB_MOUNT=$CR_DTS_TREBLE
               CR_RAMDISK=$CR_RAMDISK_TREBLE
-            else
+            fi
+            if [ $CR_MODE = "2" ]; then
+              echo " Building AOSP-Treble variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
+              CR_VARIANT=$CR_VARIANT_G935-Treble
+              CR_DTB_MOUNT=$CR_DTS_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_TREBLE
+            fi
+            if [ $CR_MODE = "3" ]; then
               echo " Building OneUI variant "
               CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
-              CR_VARIANT=$CR_VARIANT_G935-ONEUI
+              CR_VARIANT=$CR_VARIANT_G935-TW
               CR_DTB_MOUNT=$CR_DTS_ONEUI
             fi
             CR_CONFIG=$CR_CONFIG_G93X
