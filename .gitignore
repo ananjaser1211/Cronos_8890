@@ -61,8 +61,8 @@ arch/arm64/crypto/sha512-core.S
 output/
 scripts/dtbTool/
 drivers/gpu/arm/mali400/ump/arch
-security/selinux_n/flask.h
-security/selinux_n/av_permissions.h
+security/selinux/flask.h
+security/selinux/av_permissions.h
 fips_fmp_utils
 drivers/gpu/arm/mali400/ump/arch
 # Work
