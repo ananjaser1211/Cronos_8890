@@ -94,9 +94,23 @@ x509.genkey
 
 # Kconfig presets
 all.config
+<<<<<<< HEAD
 
 # fetched Android config fragments
 android/configs/android-*.cfg
+=======
+build_kernel.sh
+env_setup.sh
+arch/arm64/crypto/sha256-core.S
+arch/arm64/crypto/sha512-core.S
+output/
+scripts/dtbTool/
+drivers/gpu/arm/mali400/ump/arch
+security/selinux/flask.h
+security/selinux/av_permissions.h
+fips_fmp_utils
+drivers/gpu/arm/mali400/ump/arch
+>>>>>>> 4f66b683ad0... security: remove selinux symlink
 # Work
 Helios/Out/*.img
 Helios/Out/*.zip
