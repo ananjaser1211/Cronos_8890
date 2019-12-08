@@ -40,6 +40,16 @@
  * and don't forget to CC: the USB development list <linux-usb@vger.kernel.org>
  */
 
+/*
+ * Apricorn USB3 dongle sometimes returns "USBSUSBSUSBS" in response to SCSI
+ * commands in UAS mode.  Observed with the 1.28 firmware; are there others?
+ */
+UNUSUAL_DEV(0x0984, 0x0301, 0x0128, 0x0128,
+		"Apricorn",
+		"",
+		USB_SC_DEVICE, USB_PR_DEVICE, NULL,
+		US_FL_IGNORE_UAS),
+
 /* https://bugzilla.kernel.org/show_bug.cgi?id=79511 */
 UNUSUAL_DEV(0x0bc2, 0x2312, 0x0000, 0x9999,
 		"Seagate",
@@ -152,6 +162,13 @@ UNUSUAL_DEV(0x2109, 0x0711, 0x0000, 0x9999,
 		"VL711",
 		USB_SC_DEVICE, USB_PR_DEVICE, NULL,
 		US_FL_NO_ATA_1X),
+
+/* Reported-by: Icenowy Zheng <icenowy@aosc.io> */
+UNUSUAL_DEV(0x2537, 0x1068, 0x0000, 0x9999,
+		"Norelsys",
+		"NS1068X",
+		USB_SC_DEVICE, USB_PR_DEVICE, NULL,
+		US_FL_IGNORE_UAS),
 
 /* Reported-by: Takeo Nakayama <javhera@gmx.com> */
 UNUSUAL_DEV(0x357d, 0x7788, 0x0000, 0x9999,

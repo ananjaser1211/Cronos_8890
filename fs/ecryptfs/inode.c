@@ -452,9 +452,7 @@ ecryptfs_create(struct inode *directory_inode, struct dentry *ecryptfs_dentry,
 		iput(ecryptfs_inode);
 		goto out;
 	}
-	unlock_new_inode(ecryptfs_inode);
-
-	d_instantiate(ecryptfs_dentry, ecryptfs_inode);
+	d_instantiate_new(ecryptfs_dentry, ecryptfs_inode);
 #if (ANDROID_VERSION < 80000)
 	if(d_unhashed(ecryptfs_dentry))
 		d_rehash(ecryptfs_dentry);

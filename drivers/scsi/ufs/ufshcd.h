@@ -648,7 +648,8 @@ struct ufs_hba {
 	struct ufs_reset_info rst_info;
 	struct ufs_debug debug;
 	int			latency_hist_enabled;
-	struct io_latency_state io_lat_s;
+	struct io_latency_state io_lat_read;
+	struct io_latency_state io_lat_write;
 #if defined(SEC_UFS_ERROR_COUNT)
 	struct SEC_UFS_counting SEC_err_info;
 #endif
