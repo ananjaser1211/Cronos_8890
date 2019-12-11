@@ -5958,7 +5958,7 @@ static int hmp_is_family_in_fastest_domain(struct task_struct *p)
 
 				if ((s64)delta > 0) {
 					delta >>= 10;
-                           
+
 					if (delta > (1024 << 8)) {
 						continue;
 					}
@@ -8412,9 +8412,10 @@ more_balance:
 out_balanced:
 	/*
 	 * We reach balance although we may have faced some affinity
-	 * constraints. Clear the imbalance flag if it was set.
+	 * constraints. Clear the imbalance flag only if other tasks got
+	 * a chance to move and fix the imbalance.
 	 */
-	if (sd_parent) {
+	if (sd_parent && !(env.flags & LBF_ALL_PINNED)) {
 		int *group_imbalance = &sd_parent->groups->sgc->imbalance;
 
 		if (*group_imbalance)

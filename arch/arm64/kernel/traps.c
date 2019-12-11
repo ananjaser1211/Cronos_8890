@@ -305,7 +305,7 @@ static int __die(const char *str, int err, struct thread_info *thread,
 		dump_mem(KERN_EMERG, "Stack: ", regs->sp,
 			 THREAD_SIZE + (unsigned long)task_stack_page(tsk));
 
-#ifdef CONFIG_SEC_DEBUG_AUTO_SUMMARY		
+#ifdef CONFIG_SEC_DEBUG_AUTO_SUMMARY
 		dump_backtrace_auto_summary(NULL, tsk);
 #else
 		dump_backtrace(NULL, tsk);
@@ -607,7 +607,6 @@ asmlinkage void bad_mode(struct pt_regs *regs, int reason, unsigned int esr)
 	sec_debug_set_extra_info_esr(esr);
 #endif
 
-	die("Oops - bad mode", regs, 0);
 	local_irq_disable();
 	panic("bad mode");
 }
