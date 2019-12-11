@@ -87,7 +87,7 @@ static void add_early_randomness(struct hwrng *rng)
 	int bytes_read;
 
 	mutex_lock(&reading_mutex);
-	bytes_read = rng_get_data(rng, bytes, sizeof(bytes), 1);
+	bytes_read = rng_get_data(rng, bytes, sizeof(bytes), 0);
 	mutex_unlock(&reading_mutex);
 	if (bytes_read > 0)
 		add_device_randomness(bytes, bytes_read);
