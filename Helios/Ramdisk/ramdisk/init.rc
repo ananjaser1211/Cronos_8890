@@ -60,6 +60,9 @@ on init
     # Link /odm to /system/odm for devices without a ODM partition (csc/omc v5).
     symlink /system/odm /odm
 
+    # Link /product to /system/product for devices without a product partition.
+    symlink /system/product /product
+
     # MirrorLink permission
     mkdir /dev/socket/mlaudio 0770 audioserver system
 
