@@ -39,6 +39,9 @@ delete_recursive("/system/priv-app/KnoxCore");
 delete_recursive("/system/priv-app/KnoxGuard");
 delete_recursive("/system/priv-app/EliteTuner");
 delete_recursive("/system/priv-app/HK*");
+ui_print("-- Removing GameOptimizer");
+delete_recursive("/system/app/GameOptimizer");
+delete_recursive("/system/app/GameOptimizingService");
 ui_print("-- Installing HKTweaks");
 #####################################################################
 #                       Phone Variant Detection
