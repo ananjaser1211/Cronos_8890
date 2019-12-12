@@ -38,7 +38,7 @@
 /dev/v4l-subdev21         0660   system     graphics
 /dev/v4l-subdev32         0660   system     graphics
 
-# gscalersdev20
+# gscalers
 /dev/video23              0660   media      graphics
 /dev/video26              0660   media      graphics
 /dev/video24              0660   media      graphics
