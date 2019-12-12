@@ -27,6 +27,10 @@ vendor.sys.mobicoredaemon.enable  u:object_r:vendor_mobicoredaemon_prop:s0
 
 # need to check
 sat.test.monkey.pid       u:object_r:vendor_prop:s0
+
+# for eden
+ro.eden.devices                 u:object_r:vendor_eden_prop:s0
+ro.eden.npu.version.path        u:object_r:vendor_eden_prop:s0
 #line 1 "vendor/samsung/system/sepolicy/samsung/property_contexts"
 # http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23265980
 vendor.bluetooth_fw_ver                     u:object_r:vendor_bluetooth_prop:s0
@@ -135,6 +139,67 @@ persist.smartcard.payment_sim      		u:object_r:payment_sim_prop:s0
 # http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1475
 ro.boot.activatedid      		u:object_r:boot_activatedid_prop:s0
 
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1496
+persist.cache_status_64         u:object_r:cache_status_prop:s0
+persist.cache_status_32         u:object_r:cache_status_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1510
+vendor.camera.motor.service                       u:object_r:vendor_camera_motor_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1565 
+ro.factory.factory_binary                       u:object_r:vendor_factory_prop:s0 
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1585
+vzw.sys.cdmaless                        u:object_r:vendor_vzw_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1597
+persist.sys.ina.status         u:object_r:ina_status_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1617
+ArmNN.float32Performance.execTime                       u:object_r:armnn_prop:s0
+ArmNN.float32Performance.powerUsage                     u:object_r:armnn_prop:s0
+ArmNN.quantized8Performance.execTime                    u:object_r:armnn_prop:s0
+ArmNN.quantized8Performance.powerUsage                  u:object_r:armnn_prop:s0
+ArmNN.relaxedFloat32toFloat16Performance.execTime       u:object_r:armnn_prop:s0
+debug.armnn.log                                         u:object_r:armnn_prop:s0       
+debug.armnn.var                                         u:object_r:armnn_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1640
+persist.sys.bt.driver.version                            u:object_r:vendor_bluetooth_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1646
+mdc.                u:object_r:csc_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1663
+vendor.sys.qseecomd.               u:object_r:vendor_qseecomd_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1707
+ro.netflix.channel               u:object_r:csc_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1701
+ro.boot.dram_info      		u:object_r:boot_dram_info_prop:s0
+ro.boot.force_upload      		u:object_r:boot_force_upload_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1933
+sys.rdxd.      		            u:object_r:rdxd_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1990
+ro.linkedin.channel				u:object_r:linkedin_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-2039
+vendor.mdlogger.Running  u:object_r:debug_mdlogger_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-2057
+tas.smartamp.disable				u:object_r:smartamp_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-2344
+persist.security.cmfa      u:object_r:cmfa_prop:s0
+persist.security.cmfa.data      u:object_r:cmfa_data_prop:s0
+
+# https://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-2873
+knoxsdk.tac.header          u:object_r:knox_kap_prop:s0
+knoxsdk.tac.body            u:object_r:knox_kap_prop:s0
+
 #line 1 "vendor/samsung/system/sepolicy/BSP/slsi/common/property_contexts"
 ##########################
 # property service keys
@@ -150,6 +215,9 @@ vendor.cbd.                                 u:object_r:vendor_cbd_prop:s0
 
 # http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23402289
 vendor.TEEGRIS.                             u:object_r:vendor_teegris_prop:s0
+
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1709
+vendor.perf.gestureflingboost.enable      u:object_r:domain_read_prop:s0
 
 #line 1 "system/sepolicy/reqd_mask/property_contexts"
 # empty property_contexts file - this file is used to generate an empty

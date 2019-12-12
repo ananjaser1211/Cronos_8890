@@ -123,7 +123,6 @@ on init
     mkdir /mnt/appfuse 0711 root root
 
     # Storage views to support runtime permissions
-    mkdir /storage 0755 root root
     mkdir /mnt/runtime 0700 root root
     mkdir /mnt/runtime/default 0755 root root
     mkdir /mnt/runtime/default/self 0755 root root
@@ -611,16 +610,10 @@ on post-fs-data
     mkdir /data/misc/vpn 0770 system vpn
     mkdir /data/misc/shared_relro 0771 shared_relro shared_relro
     mkdir /data/misc/systemkeys 0700 system system
-    mkdir /data/misc/wifi 0770 wifi wifi
-    mkdir /data/misc/wifi/sockets 0770 wifi wifi
-    mkdir /data/misc/wifi/wpa_supplicant 0770 wifi wifi
-    mkdir /data/misc/wifi_hostapd 0771 wifi system
     mkdir /data/misc/ethernet 0770 system system
     mkdir /data/misc/dhcp 0770 dhcp dhcp
     mkdir /data/misc/user 0771 root root
     mkdir /data/misc/perfprofd 0775 root root
-    # give system access to wpa_supplicant.conf for backup and restore
-    chmod 0660 /data/misc/wifi/wpa_supplicant.conf
     mkdir /data/local 0751 root root
     mkdir /data/misc/media 0700 media media
     mkdir /data/misc/audioserver 0700 audioserver audioserver
@@ -661,9 +654,6 @@ on post-fs-data
     mkdir /data/wifi/ 0770 system root
 
     # for WIFI Antenna
-    # Hotspot
-    write /data/vendor/conn/.softap.info 0
-
     write /data/misc/conn/.wificable.info E
     chown system root /data/misc/conn/.wificable.info
     chmod 0666 /data/misc/conn/.wificable.info
@@ -1317,6 +1307,8 @@ on boot
     chmod 444 /sys/class/sec/sdcard/sdcard_summary
     chown system system /sys/class/sec/sdinfo/sd_count
     chmod 444 /sys/class/sec/sdinfo/sd_count
+    chown system system /sys/class/sec/sdinfo/data
+    chmod 444 /sys/class/sec/sdinfo/data
 
     # h2k
     mkdir /efs/cpk 0771 radio system
@@ -1633,6 +1625,8 @@ on property:vold.decrypt=trigger_reset_main
     stop vendor.hwcomposer-2-1
     stop vendor.hwcomposer-2-2
     stop ExynosHWCServiceTW
+    stop vndservicemanager
+    start vndservicemanager
     start ExynosHWCServiceTW
     start vendor.hwcomposer-2-1
     start vendor.hwcomposer-2-2

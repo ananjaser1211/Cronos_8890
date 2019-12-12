@@ -5,6 +5,7 @@ vendor.samsung_slsi.hardware.ExynosA2DPOffload::IExynosA2DPOffload    u:object_r
 vendor.samsung_slsi.hardware.eden_runtime::IEdenruntime               u:object_r:hal_vendor_eden_runtime_hwservice:s0
 com.dsi.ant::IAnt                   u:object_r:hal_dsi_ant_hwservice:s0
 vendor.samsung_slsi.hardware.ofi::IOfiService                         u:object_r:hal_ofi_hwservice:s0
+vendor.samsung_slsi.hardware.epic::IEpicRequest			      u:object_r:hal_vendor_epic_hwservice:s0
 vendor.samsung.hardware.miscpower::ISecMiscPower                        u:object_r:hal_miscpower_hwservice:s0
 vendor.samsung.hardware.vibrator::ISecVibrator                         u:object_r:hal_vibrator_hwservice:s0
 vendor.samsung.hardware.biometrics.fingerprint::ISecBiometricsFingerprint  u:object_r:hal_fingerprint_hwservice:s0
@@ -40,6 +41,7 @@ vendor.samsung.hardware.qchdcpkprov_server::Iqchdcpkprov_server        u:object_
 vendor.samsung_slsi.hardware.MultiFrameProcessing20::IMultiFrameProcessing20	u:object_r:hal_MultiFrameProcessing20_hwservice:s0
 vendor.samsung.security.wvkprov_server::Iwvkprov_server        u:object_r:hal_wvkprov_hwservice:s0
 vendor.samsung.hardware.soter::ISecSoter                            u:object_r:hal_sec_soter_hwservice:s0
+vendor.samsung.hardware.soter::ISehSecSoter                         u:object_r:hal_sec_soter_hwservice:s0
 vendor.samsung.hardware.bluetooth.a2dpOffload::IA2dpOffload		u:object_r:hal_bluetooth_a2dp_hwservice:s0
 vendor.samsung.security.vaultkeeper_server::Ivaultkeeper_server     u:object_r:hal_vaultkeeper_server_hwservice:s0
 vendor.samsung.hardware.sbtvdtuner::ISBTVDTuner                    u:object_r:hal_sbtvd_hwservice:s0

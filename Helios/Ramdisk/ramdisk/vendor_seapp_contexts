@@ -46,6 +46,9 @@ user=vendor_spass seinfo=platform domain=platform_app type=app_data_file levelFr
 user=vendor_spay seinfo=spay domain=platform_app type=app_data_file
 user=dsms seinfo=platform name=com.samsung.android.dsms domain=dsms_app type=app_data_file levelFrom=user
 user=adaptive_brightness seinfo=platform name=com.samsung.adaptivebrightnessgo domain=platform_app type=app_data_file levelFrom=user
+user=system seinfo=platform name=com.sec.android.systemupdate domain=spu_app type=app_data_file
+user=vendor_mcptt_mcx seinfo=platform name=com.samsung.android.sptt* domain=platform_app type=app_data_file levelFrom=user
+user=vendor_mcptt_mcx seinfo=platform name=com.att.firstnet.grey* domain=platform_app type=app_data_file levelFrom=user
 user=drm seinfo=platform name=com.sec.android.SamsungDrmProvider domain=platform_app type=app_data_file levelFrom=user
 user=smartcard seinfo=platform domain=platform_app type=app_data_file levelFrom=user
 user=msgcom seinfo=platform domain=platform_app type=app_data_file levelFrom=user

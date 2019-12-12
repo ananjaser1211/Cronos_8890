@@ -1,0 +1,12 @@
+on boot
+
+# tdmb
+    chown system system /dev/tdmb
+    chmod 0660 /dev/tdmb
+
+on fs
+
+service dmb /system/bin/dmbserver
+    class main
+    user media
+    group system radio inet misc audio graphics net_bt net_bt_admin sdcard_rw sdcard_r shell media_rw

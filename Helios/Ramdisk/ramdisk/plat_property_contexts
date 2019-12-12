@@ -445,6 +445,8 @@ ro.audio.usb.period_us                  u:object_r:sec_audio_prop:s0
 ofi.dal.time                     u:object_r:vendor_ofi_prop:s0
 vendor.ofi.rt_framework.dbgmask  u:object_r:vendor_ofi_prop:s0
 
+# http://mobilerndhub.sec.samsung.net/its/browse/SEANDROID-1586
+omc2.set_partnerid            u:object_r:csc_prop:s0
 #line 1 "vendor/samsung/system/sepolicy/private/BSP/slsi/common/property_contexts"
 # http://mobilerndhub.sec.samsung.net/hub/site/seandroid/board/P_review_request/view/23406763
 dolby.                     u:object_r:dolby_prop:s0   

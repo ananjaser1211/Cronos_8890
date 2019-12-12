@@ -308,6 +308,7 @@ log_manager_service                         u:object_r:log_manager_service:s0
 mdm.remotedesktop                           u:object_r:remotedesktop_service:s0
 multi_user_manager_service                  u:object_r:multi_user_manager_service:s0
 remoteinjection                             u:object_r:remoteinjection_service:s0
+kpcc                                        u:object_r:kpcc_service:s0
 ESEMDMService                                 u:object_r:platform_app_service:s0
 bluetooth_secure_mode_manager               u:object_r:bluetooth_manager_service:s0
 spengestureservice                          u:object_r:spengesture_service:s0
@@ -351,6 +352,10 @@ samsung.camerasdkservice                   u:object_r:camerasdkservice_service:s
 perfsdkservice                          u:object_r:perfsdkservice_service:s0
 cameramotor                                 u:object_r:cameramotor_service:s0
 mcps					u:object_r:mcps_service:s0
+SamsungEuicc     u:object_r:samsungeuicc_service:s0
+IntelligentBatterySaverService                  u:object_r:IntelligentBatterySaver_service:s0
+threat_defense_service                  u:object_r:threat_defense_service:s0
+continuous_authentication_service           u:object_r:continuous_authentication_service:s0
 AAS                                         u:object_r:AAS_service:s0
 ABTPersistenceService                       u:object_r:abt_persistence_service:s0
 AODManagerService                           u:object_r:aod_manager_service:s0
