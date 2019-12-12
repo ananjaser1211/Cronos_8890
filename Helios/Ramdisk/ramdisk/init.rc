@@ -1015,12 +1015,6 @@ on boot
     chown system system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
     chmod 0660 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
 
-    # Permission for DVFS helper
-    chown system radio /sys/power/cpufreq_min_limit
-    chmod 0664 /sys/power/cpufreq_min_limit
-    chown system radio /sys/power/cpufreq_max_limit
-    chmod 0664 /sys/power/cpufreq_max_limit
-
 	# permission for CHARGING
 	mkdir /efs/Battery 0775 radio system
 	chown radio system /efs/Battery
