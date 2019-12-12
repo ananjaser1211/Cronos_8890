@@ -57,9 +57,6 @@ struct dwc3_otg {
 	struct regulator	*vbus_reg;
 
 	struct dwc3_ext_otg_ops	*ext_otg_ops;
-#if defined(CONFIG_TYPEC)
-	struct intf_typec	*typec;
-#endif
 };
 
 static inline int dwc3_ext_otg_setup(struct dwc3_otg *dotg)

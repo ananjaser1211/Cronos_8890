@@ -2379,7 +2379,6 @@ static int ffs_func_bind(struct usb_configuration *c,
 
 error:
 	/* XXX Do we need to release all claimed endpoints here? */
-	kfree(data);
 	return ret;
 }
 
