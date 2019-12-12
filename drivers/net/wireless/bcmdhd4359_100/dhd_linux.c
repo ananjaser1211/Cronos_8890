@@ -25,7 +25,7 @@
  *
  * <<Broadcom-WL-IPTag/Open:>>
  *
- * $Id: dhd_linux.c 802370 2019-02-01 07:43:38Z $
+ * $Id: dhd_linux.c 818247 2019-05-07 04:15:13Z $
  */
 
 #include <typedefs.h>
@@ -2906,7 +2906,7 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 	uint roamvar = 1;
 #endif /* ENABLE_FW_ROAM_SUSPEND */
 #ifdef ENABLE_BCN_LI_BCN_WAKEUP
-	int bcn_li_bcn;
+	int bcn_li_bcn = 1;
 #endif /* ENABLE_BCN_LI_BCN_WAKEUP */
 	uint nd_ra_filter = 0;
 #ifdef ENABLE_IPMCAST_FILTER
@@ -3087,13 +3087,22 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 				}
 #endif /* ENABLE_FW_ROAM_SUSPEND */
 #ifdef ENABLE_BCN_LI_BCN_WAKEUP
-				bcn_li_bcn = 0;
+				if (bcn_li_dtim) {
+					bcn_li_bcn = 0;
+				}
 				ret = dhd_iovar(dhd, 0, "bcn_li_bcn", (char *)&bcn_li_bcn,
 						sizeof(bcn_li_bcn), NULL, 0, TRUE);
 				if (ret < 0) {
 					DHD_ERROR(("%s bcn_li_bcn failed %d\n", __FUNCTION__, ret));
 				}
 #endif /* ENABLE_BCN_LI_BCN_WAKEUP */
+#if defined(WL_CFG80211) && defined(WL_BCNRECV)
+				ret = wl_android_bcnrecv_suspend(dhd_linux_get_primary_netdev(dhd));
+				if (ret != BCME_OK) {
+					DHD_ERROR(("failed to stop beacon recv event on"
+						" suspend state (%d)\n", ret));
+				}
+#endif /* WL_CFG80211 && WL_BCNRECV */
 #ifdef NDO_CONFIG_SUPPORT
 				if (dhd->ndo_enable) {
 					if (!dhd->ndo_host_ip_overflow) {
@@ -3171,6 +3180,13 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 				dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)&power_mode,
 				                 sizeof(power_mode), TRUE, 0);
 #endif /* SUPPORT_PM2_ONLY */
+#if defined(WL_CFG80211) && defined(WL_BCNRECV)
+				ret = wl_android_bcnrecv_resume(dhd_linux_get_primary_netdev(dhd));
+				if (ret != BCME_OK) {
+					DHD_ERROR(("failed to resume beacon recv state (%d)\n",
+							ret));
+				}
+#endif /* WL_CF80211 && WL_BCNRECV */
 #ifdef PKT_FILTER_SUPPORT
 				/* disable pkt filter */
 				dhd_enable_packet_filter(0, dhd);
@@ -3254,7 +3270,6 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 				}
 #endif /* ENABLE_FW_ROAM_SUSPEND */
 #ifdef ENABLE_BCN_LI_BCN_WAKEUP
-				bcn_li_bcn = 1;
 				ret = dhd_iovar(dhd, 0, "bcn_li_bcn", (char *)&bcn_li_bcn,
 						sizeof(bcn_li_bcn), NULL, 0, TRUE);
 				if (ret < 0) {
@@ -7188,6 +7203,7 @@ dhd_add_monitor_if(dhd_info_t *dhd)
 		DHD_ERROR(("%s, register_netdev failed for %s\n",
 			__FUNCTION__, dev->name));
 		free_netdev(dev);
+		return;
 	}
 
 	if (FW_SUPPORTED((&dhd->pub), monitor)) {
@@ -11034,6 +11050,7 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 #else
 	dhd->max_dtim_enable = FALSE;
 #endif /* ENABLE_MAX_DTIM_IN_SUSPEND */
+	dhd->disable_dtim_in_suspend = FALSE;
 #ifdef CUSTOM_SET_OCLOFF
 	dhd->ocl_off = FALSE;
 #endif /* CUSTOM_SET_OCLOFF */
@@ -11826,6 +11843,9 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 #ifdef SUPPORT_EVT_SDB_LOG
 		setbit(eventmask_msg->mask, WLC_E_SDB_TRANSITION);
 #endif /* SUPPORT_EVT_SDB_LOG */
+#ifdef WL_BCNRECV
+		setbit(eventmask_msg->mask, WLC_E_BCNRECV_ABORTED);
+#endif /* WL_BCNRECV */
 		/* Write updated Event mask */
 		eventmask_msg->ver = EVENTMSGS_VER;
 		eventmask_msg->command = EVENTMSGS_SET_MASK;
@@ -14568,6 +14588,26 @@ int net_os_set_max_dtim_enable(struct net_device *dev, int val)
 			dhd->pub.max_dtim_enable = TRUE;
 		} else {
 			dhd->pub.max_dtim_enable = FALSE;
+		}
+	} else {
+		return -1;
+	}
+
+	return 0;
+}
+
+int
+net_os_set_disable_dtim_in_suspend(struct net_device *dev, int val)
+{
+	dhd_info_t *dhd = DHD_DEV_INFO(dev);
+
+	if (dhd) {
+		DHD_ERROR(("%s: Disable bcn_li_dtim in suspend : %s\n",
+			__FUNCTION__, (val ? "Enable" : "Disable")));
+		if (val) {
+			dhd->pub.disable_dtim_in_suspend = TRUE;
+		} else {
+			dhd->pub.disable_dtim_in_suspend = FALSE;
 		}
 	} else {
 		return -1;
