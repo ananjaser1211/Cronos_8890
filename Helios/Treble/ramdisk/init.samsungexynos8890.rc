@@ -497,7 +497,7 @@ on boot
     chmod 0666 /dev/cpuctl/bg_cached/tasks
     chmod 0664 /dev/cpuctl/bg_cached/cpu.cfs_period_us
     chmod 0664 /dev/cpuctl/bg_cached/cpu.cfs_quota_us
-    write /dev/cpuctl/bg_cached/cpu.rt_runtime_us 10000
+    write /dev/cpuctl/bg_cached/cpu.rt_runtime_us 950000
     write /dev/cpuctl/bg_cached/cpu.rt_period_us 1000000
     write /dev/cpuctl/bg_cached/cpu.cfs_period_us 20000
     write /dev/cpuctl/bg_cached/cpu.cfs_quota_us 10000
@@ -509,16 +509,16 @@ on boot
     chmod 0666 /dev/cpuctl/bg_abnormal/tasks
     chmod 0664 /dev/cpuctl/bg_abnormal/cpu.cfs_period_us
     chmod 0664 /dev/cpuctl/bg_abnormal/cpu.cfs_quota_us
-    write /dev/cpuctl/bg_abnormal/cpu.rt_runtime_us 10000
+    write /dev/cpuctl/bg_abnormal/cpu.rt_runtime_us 950000
     write /dev/cpuctl/bg_abnormal/cpu.rt_period_us 1000000
     write /dev/cpuctl/bg_abnormal/cpu.cfs_period_us 20000
     write /dev/cpuctl/bg_abnormal/cpu.cfs_quota_us 10000
 
     mkdir /dev/cpuset/cached
-    write /dev/cpuset/cached/cpus 0-2
+    write /dev/cpuset/cached/cpus 0-3
     copy /dev/cpuset/mems /dev/cpuset/cached/mems
     mkdir /dev/cpuset/abnormal
-    write /dev/cpuset/abnormal/cpus 0-2
+    write /dev/cpuset/abnormal/cpus 0-3
     copy /dev/cpuset/mems /dev/cpuset/abnormal/mems
 
     # change permissions for BarTender's cpusets we'll touch at runtime
@@ -647,7 +647,6 @@ on fs
     chmod 0664 /sys/class/input_booster/level
     chmod 0664 /sys/class/input_booster/head
     chmod 0664 /sys/class/input_booster/tail
-    chmod 0666 /sys/class/input_booster/touchkey/time
 
 # Performance
     chown system radio /sys/power/cpufreq_max_limit
