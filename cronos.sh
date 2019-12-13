@@ -32,12 +32,13 @@ CR_AIK=$CR_DIR/Helios/A.I.K
 # Main Ramdisk Location
 CR_RAMDISK=$CR_DIR/Helios/Ramdisk
 CR_RAMDISK_TREBLE=$CR_DIR/Helios/Treble
+CR_RAMDISK_Q=$CR_DIR/Helios/Q
 # Compiled image name and location (Image/zImage)
 CR_KERNEL=$CR_DIR/arch/arm64/boot/Image
 # Compiled dtb by dtbtool
 CR_DTB=$CR_DIR/boot.img-dtb
 # Kernel Name and Version
-CR_VERSION=V2.0
+CR_VERSION=V2.5
 CR_NAME=HeliosKernel
 # Thread count
 CR_JOBS=$(nproc --all)
@@ -67,6 +68,7 @@ CR_VARIANT_G935=G935X
 CR_CONFIG_TREBLE=treble_defconfig
 CR_CONFIG_ONEUI=oneui_defconfig
 CR_CONFIG_TREBLE_ONEUI=treble-oneui_defconfig
+CR_CONFIG_Q=treble-oneui-q_defconfig
 CR_CONFIG_G93X=herolte_defconfig
 CR_CONFIG_SPLIT=NULL
 CR_CONFIG_HELIOS=helios_defconfig
@@ -84,7 +86,7 @@ else
 fi
 
 # Treble / OneUI
-read -p "Variant? (1 (OneUI-Treble) | 2 (AOSP-Treble) | 3 (OneUI) > " aud
+read -p "Variant? (1 (OneUI-Treble) | 2 (AOSP-Treble) | 3 (OneUI) | 4 (OneUI Q) > " aud
 if [ "$aud" = "1" ]; then
      echo "Build OneUI-Treble Variant"
      CR_MODE="1"
@@ -96,6 +98,10 @@ fi
 if [ "$aud" = "3" ]; then
      echo "Build OneUI Variant"
      CR_MODE="3"
+fi
+if [ "$aud" = "4" ]; then
+     echo "Build OneUI Q Variant"
+     CR_MODE="4"
 fi
 
 BUILD_CLEAN()
@@ -311,6 +317,14 @@ do
               CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
               CR_VARIANT=$CR_VARIANT_G935-TW
               CR_DTB_MOUNT=$CR_DTS_ONEUI
+            fi
+            if [ $CR_MODE = "4" ]; then
+              echo " Building Oneui-Q variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE_ONEUI
+              CR_CONFIG_TEST=$CR_CONFIG_Q
+              CR_VARIANT=$CR_VARIANT_G935-Q
+              CR_DTB_MOUNT=$CR_DTS_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_Q
             fi
             CR_CONFIG=$CR_CONFIG_G93X
             CR_CONFIG_SPLIT=$CR_CONFIG_G935
