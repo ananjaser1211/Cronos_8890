@@ -83,6 +83,9 @@ struct dwc3_exynos {
 
 	struct dwc3_exynos_rsw	rsw;
 	const struct dwc3_exynos_drvdata *drv_data;
+#if defined(CONFIG_TYPEC)
+	struct intf_typec	*typec;
+#endif
 
 #ifdef CONFIG_PM_DEVFREQ
 	unsigned int int_min_lock;

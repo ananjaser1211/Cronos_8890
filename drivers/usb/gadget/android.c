@@ -218,7 +218,7 @@ static void android_work(struct work_struct *data)
 		uevent_envp = dev->connected ? connected : disconnected;
 #ifdef CONFIG_USB_TYPEC_MANAGER_NOTIFIER
 		if (dev->connected) {
-			if (dev->cdev && (dev->cdev->desc.bcdUSB == 0x310)) {
+			if (cdev->desc.bcdUSB == 0x310) {
 				set_usb_enumeration_state(0x310);	// Super-Speed	
 			} else {
 				set_usb_enumeration_state(0x210);	// High-Speed
