@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Cronos Build Script V4.0
+# Cronos Build Script V4.1
 # For Exynos8890
 # Coded by AnanJaser1211 @2019
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -141,7 +141,7 @@ BUILD_GENERATE_CONFIG()
   # Only use for devices that are unified with 2 or more configs
   echo "----------------------------------------------"
 	echo " "
-	echo "Building deconfig for $CR_VARIANT"
+	echo "Building defconfig for $CR_VARIANT"
   echo " "
   # Respect CLEAN build rules
   BUILD_CLEAN
@@ -157,11 +157,7 @@ BUILD_GENERATE_CONFIG()
     echo " Copy $CR_CONFIG_SPLIT "
     cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_SPLIT >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   fi
-  if [ $CR_MODE = 2 ]; then
-    echo " Copy $CR_CONFIG_TYPE "
-    cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_TYPE >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
-  fi
-  if [ $CR_MODE = 1 ]; then
+  if [ $CR_MODE != "NULL" ]; then
     echo " Copy $CR_CONFIG_TYPE "
     cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_TYPE >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   fi
