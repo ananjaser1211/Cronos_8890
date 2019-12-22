@@ -72,6 +72,7 @@ CR_CONFIG_Q=treble-oneui-q_defconfig
 CR_CONFIG_G93X=herolte_defconfig
 CR_CONFIG_SPLIT=NULL
 CR_CONFIG_HELIOS=helios_defconfig
+CR_ROOT="0"
 #####################################################
 
 # Script functions
@@ -104,6 +105,14 @@ if [ "$aud" = "4" ]; then
      CR_MODE="4"
 fi
 
+# Got Root?
+read -p "Kernel SU? (y/n) > " yn
+if [ "$yn" = "Y" -o "$yn" = "y" ]; then
+     echo " WARNING : KernelSU Enabled!"
+     export CONFIG_ASSISTED_SUPERUSER=y
+     CR_ROOT="1"
+fi
+
 BUILD_CLEAN()
 {
 if [ $CR_CLEAN = 1 ]; then
@@ -128,6 +137,16 @@ if [ $CR_CLEAN = 0 ]; then
      rm -rf $CR_DTS/*.dtb
      rm -rf $CR_DIR/.config
      rm -rf $CR_DTS/exynos8890.dtsi
+fi
+}
+
+BUILD_ROOT()
+{
+if [ $CR_ROOT = 1 ]; then
+     echo " "
+     echo " WARNING : KernelSU Enabled!"
+     mv $CR_PRODUCT/$CR_IMAGE_NAME.img $CR_PRODUCT/$CR_IMAGE_NAME-KernelSU.img
+     CR_IMAGE_NAME=$CR_IMAGE_NAME-KernelSU.img
 fi
 }
 
@@ -279,6 +298,7 @@ do
             BUILD_ZIMAGE
             BUILD_DTB
             PACK_BOOT_IMG
+            BUILD_ROOT
             echo " "
             echo "----------------------------------------------"
             echo "$CR_VARIANT kernel build finished."
@@ -330,6 +350,7 @@ do
             BUILD_ZIMAGE
             BUILD_DTB
             PACK_BOOT_IMG
+            BUILD_ROOT
             echo " "
             echo "----------------------------------------------"
             echo "$CR_VARIANT kernel build finished."
