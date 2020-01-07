@@ -3048,6 +3048,7 @@ static void binder_transaction(struct binder_proc *proc,
 	}
 	if (target_node && target_node->txn_security_ctx) {
 		u32 secid;
+		size_t added_size;
 
 		security_task_getsecid(proc->tsk, &secid);
 		ret = security_secid_to_secctx(secid, &secctx, &secctx_sz);
@@ -3057,7 +3058,15 @@ static void binder_transaction(struct binder_proc *proc,
 			return_error_line = __LINE__;
 			goto err_get_secctx_failed;
 		}
-		extra_buffers_size += ALIGN(secctx_sz, sizeof(u64));
+		added_size = ALIGN(secctx_sz, sizeof(u64));
+		extra_buffers_size += added_size;
+		if (extra_buffers_size < added_size) {
+			/* integer overflow of extra_buffers_size */
+			return_error = BR_FAILED_REPLY;
+			return_error_param = EINVAL;
+			return_error_line = __LINE__;
+			goto err_bad_extra_size;
+		}
 	}
 
 
@@ -4534,7 +4543,6 @@ static int binder_thread_release(struct binder_proc *proc,
 		if (t)
 			spin_lock(&t->lock);
 	}
-
 	/*
 	 * If this thread used poll, make sure we remove the waitqueue
 	 * from any epoll data structures holding it with POLLFREE.
