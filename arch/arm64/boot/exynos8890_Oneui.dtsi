@@ -425,7 +425,7 @@
 		/* APO */
 		cl0_idx_num = <19>;
 		cl0_max_support_idx = <4>;
-		cl0_min_support_idx = <15>;
+		cl0_min_support_idx = <18>;
 		cl0_boot_max_qos = <1586000>;
 		cl0_boot_min_qos = <1586000>;
 		cl0_en_ema = <1>;
@@ -434,7 +434,7 @@
 		/* MNGS */
 		cl1_idx_num = <28>;
 		cl1_max_support_idx = <7>;
-		cl1_min_support_idx = <22>;
+		cl1_min_support_idx = <27>;
 		cl1_boot_max_qos = <2288000>;
 		cl1_boot_min_qos = <2288000>;
 		cl1_en_ema = <1>;
