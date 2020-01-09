@@ -508,6 +508,11 @@ on post-fs-data
     chmod 0771 /keyrefuge
     restorecon /keyrefuge
 	
+# [ SEC_SELINUX_PORTING_COMMON
+    # sec_efs_file
+    mkdir /efs/sec_efs 0775 radio system
+# ] SEC_SELINUX_PORTING_COMMON
+
     # mobicore
     export MC_AUTH_TOKEN_PATH /efs
     mkdir /efs/TEE  0770 radio system
@@ -658,6 +663,27 @@ on post-fs-data
     chown system root /data/misc/conn/.wificable.info
     chmod 0666 /data/misc/conn/.wificable.info
     
+# [ SEC_PRODUCT_FEATURE_SECURITY_SUPPORT_FIVE
+    mkdir /data/misc/integrity 0775 vendor_audit system
+# ] SEC_PRODUCT_FEATURE_SECURITY_SUPPORT_FIVE
+	
+# [ SEC_SELINUX_PORTING_COMMON
+    mkdir /data/misc/audit 0775 system system
+    chown vendor_audit vendor_audit /data/misc/audit/audit.log
+    chown vendor_audit vendor_audit /data/misc/audit/audit.old
+
+    # arcounter
+    mkdir /data/misc/arcounter 0700 system system
+
+    # start auditd
+    #start auditd
+# ] SEC_SELINUX_PORTING_COMMON
+
+# [ SEC_AASA_ASKS_PORTING
+    # Seperate location for storing security policy files on data
+    mkdir /data/security 0701 system system
+# ] SEC_AASA_ASKS_PORTING
+
     mkdir /data/vendor 0771 root root
     mkdir /data/vendor_ce 0771 root root
     mkdir /data/vendor_de 0771 root root
@@ -803,6 +829,16 @@ on post-fs-data
     # Check any timezone data in /data is newer than the copy in /system, delete if not.
     exec - system system -- /system/bin/tzdatacheck /system/usr/share/zoneinfo /data/misc/zoneinfo
 
+# [ SEC_SELINUX_PORTING_COMMON
+    restorecon --recursive --force /efs
+    restorecon --recursive --force /cpefs
+    restorecon --recursive --force /mnt/vendor/efs
+    restorecon --recursive --force /mnt/vendor/cpefs
+    restorecon --recursive --force /sec_efs
+    restorecon_recursive /carrier
+    restorecon /sys/kernel/debug/tracing/trace_marker
+# ] SEC_SELINUX_PORTING_COMMON
+
     # smart switch mobile
     mkdir /efs/ssm 0770 system system
 	
@@ -866,6 +902,10 @@ on zygote-start && property:ro.crypto.state=encrypted && property:ro.crypto.type
     start zygote_secondary
 
 on boot
+    # KNOX KAP
+    chown system system /dev/knox_kap
+    chmod 0644 /dev/knox_kap
+
     # basic network init
     ifup lo
     hostname localhost
@@ -1004,6 +1044,12 @@ on boot
     # Assume SMP uses shared cpufreq policy for all CPUs
     chown system system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
     chmod 0660 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+
+    # Permission for DVFS helper
+    chown system radio /sys/power/cpufreq_min_limit
+    chmod 0664 /sys/power/cpufreq_min_limit
+    chown system radio /sys/power/cpufreq_max_limit
+    chmod 0664 /sys/power/cpufreq_max_limit
 
 	# permission for CHARGING
 	mkdir /efs/Battery 0775 radio system
@@ -1772,6 +1818,17 @@ service flash_recovery /system/bin/install-recovery.sh
     class main
     oneshot
 
+# [ SEC_SELINUX_PORTING_COMMON
+#service auditd /system/bin/auditd -k
+#    class main
+#    seclabel u:r:auditd:s0
+#    disabled
+#    oneshot
+
+on property:sys.seandroid.restoreapp=start
+    restore_appdata    
+# ] SEC_SELINUX_PORTING_COMMON
+
 # sem_daemon
 service sem_daemon /system/bin/sem_daemon
     class core
@@ -1910,6 +1967,39 @@ on property:security.edmaudit=true
 
 on property:security.edmaudit=false
     stop edmaudit
+## } SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM
+
+# knox_changer service
+# UCM ODE mode
+service ucs_enable /sbin/knox_changer -u
+    class main
+    seclabel u:r:kapd:s0
+    disabled
+    oneshot
+
+service ucs_disable /sbin/knox_changer -v
+    class main
+    seclabel u:r:kapd:s0
+    disabled
+    oneshot
+
+service ucs_reset /sbin/knox_changer -w
+    class main
+    seclabel u:r:kapd:s0
+    disabled
+    oneshot
+
+on property:security.knox_ucs_mode=true
+    chmod 0655 /efs/sec_efs/odeConfig
+    start ucs_enable
+
+on property:security.knox_ucs_mode=false
+    chmod 0655 /efs/sec_efs/odeConfig
+    start ucs_disable
+
+on property:security.knox_ucs_mode=reset
+    chmod 0655 /efs/sec_efs/odeConfig
+    start ucs_reset
     
 service SIDESYNC_service /system/bin/ss_conn_daemon
     class main
