@@ -67,8 +67,6 @@ CR_VARIANT_G935=G935X
 # Common configs
 CR_CONFIG_TREBLE=treble_defconfig
 CR_CONFIG_ONEUI=oneui_defconfig
-CR_CONFIG_TREBLE_ONEUI=treble-oneui_defconfig
-CR_CONFIG_Q=treble-oneui-q_defconfig
 CR_CONFIG_G93X=herolte_defconfig
 CR_CONFIG_SPLIT=NULL
 CR_CONFIG_HELIOS=helios_defconfig
@@ -316,7 +314,7 @@ do
             echo "Starting $CR_VARIANT_G935 kernel build..."
             if [ $CR_MODE = "1" ]; then
               echo " Building Oneui-Treble variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE_ONEUI
+              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
               CR_VARIANT=$CR_VARIANT_G935-TrebleTW
               CR_DTB_MOUNT=$CR_DTS_TREBLE
               CR_RAMDISK=$CR_RAMDISK_TREBLE
@@ -336,8 +334,7 @@ do
             fi
             if [ $CR_MODE = "4" ]; then
               echo " Building Oneui-Q variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE_ONEUI
-              CR_CONFIG_TEST=$CR_CONFIG_Q
+              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
               CR_VARIANT=$CR_VARIANT_G935-Q
               CR_DTB_MOUNT=$CR_DTS_TREBLE
               CR_RAMDISK=$CR_RAMDISK_Q
