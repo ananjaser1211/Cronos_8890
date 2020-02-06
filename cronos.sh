@@ -292,7 +292,7 @@ do
               echo " Building Oneui-Q variant "
               CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
               CR_VARIANT=$CR_VARIANT_G930-Q
-              CR_DTB_MOUNT=$CR_DTS_TREBLE
+              CR_DTB_MOUNT=$CR_DTS_ONEUI
               CR_RAMDISK=$CR_RAMDISK_Q
             fi
             CR_CONFIG=$CR_CONFIG_G93X
@@ -343,7 +343,7 @@ do
               echo " Building Oneui-Q variant "
               CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
               CR_VARIANT=$CR_VARIANT_G935-Q
-              CR_DTB_MOUNT=$CR_DTS_TREBLE
+              CR_DTB_MOUNT=$CR_DTS_ONEUI
               CR_RAMDISK=$CR_RAMDISK_Q
             fi
             CR_CONFIG=$CR_CONFIG_G93X
