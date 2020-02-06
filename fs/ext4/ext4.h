@@ -3111,4 +3111,7 @@ static inline bool ext4_android_claim_r_blocks(struct ext4_sb_info *sbi) {
 
 #endif	/* __KERNEL__ */
 
+#define EFSBADCRC	EBADMSG		/* Bad CRC detected */
+#define EFSCORRUPTED	EUCLEAN		/* Filesystem is corrupted */
+
 #endif	/* _EXT4_H */
