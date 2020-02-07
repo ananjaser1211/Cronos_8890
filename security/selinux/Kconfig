@@ -22,6 +22,13 @@ config SECURITY_SELINUX_BOOTPARAM
 
 	  If you are unsure how to answer this question, answer N.
 
+config SECURITY_SELINUX_NEVER_ENFORCE
+	bool "NSA SELinux Never Enforcing"
+	depends on SECURITY_SELINUX_DEVELOP
+	default n
+	help
+	  This option sets the kernel to operate in Permissive all the time.	
+
 config SECURITY_SELINUX_BOOTPARAM_VALUE
 	int "NSA SELinux boot parameter default value"
 	depends on SECURITY_SELINUX_BOOTPARAM
