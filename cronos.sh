@@ -151,7 +151,7 @@ if [ $CR_ROOT = 1 ]; then
      echo " "
      echo " WARNING : KernelSU Enabled!"
      mv $CR_PRODUCT/$CR_IMAGE_NAME.img $CR_PRODUCT/$CR_IMAGE_NAME-KernelSU.img
-     CR_IMAGE_NAME=$CR_IMAGE_NAME-KernelSU.img
+     CR_IMAGE_NAME=$CR_IMAGE_NAME-KernelSU
 fi
 }
 
