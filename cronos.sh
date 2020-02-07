@@ -88,18 +88,25 @@ fi
 read -p "Variant? (1 (OneUI-Treble) | 2 (AOSP-Treble) | 3 (OneUI) | 4 (OneUI Q) > " aud
 if [ "$aud" = "1" ]; then
      echo "Build OneUI-Treble Variant"
+     echo "Permissive Enabled"
+     export CONFIG_SECURITY_SELINUX_NEVER_ENFORCE=y
      CR_MODE="1"
 fi
 if [ "$aud" = "2" ]; then
      echo "Build AOSP-Treble Variant"
+     echo "Permissive Enabled"
+     export CONFIG_SECURITY_SELINUX_NEVER_ENFORCE=y
      CR_MODE="2"
 fi
 if [ "$aud" = "3" ]; then
      echo "Build OneUI Variant"
+     echo "Permissive Enabled"
+     export CONFIG_SECURITY_SELINUX_NEVER_ENFORCE=y
      CR_MODE="3"
 fi
 if [ "$aud" = "4" ]; then
      echo "Build OneUI Q Variant"
+     echo "Enforcing Enabled"
      CR_MODE="4"
 fi
 
