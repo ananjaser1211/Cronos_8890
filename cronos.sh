@@ -25,21 +25,21 @@ CR_DTS=arch/arm64/boot/dts
 CR_DTS_TREBLE=arch/arm64/boot/exynos8890_Treble.dtsi
 CR_DTS_ONEUI=arch/arm64/boot/exynos8890_Oneui.dtsi
 # Define boot.img out dir
-CR_OUT=$CR_DIR/Helios/Out
-CR_PRODUCT=$CR_DIR/Helios/Product
+CR_OUT=$CR_DIR/Cronos/Out
+CR_PRODUCT=$CR_DIR/Cronos/Product
 # Presistant A.I.K Location
-CR_AIK=$CR_DIR/Helios/A.I.K
+CR_AIK=$CR_DIR/Cronos/A.I.K
 # Main Ramdisk Location
-CR_RAMDISK=$CR_DIR/Helios/Ramdisk
-CR_RAMDISK_TREBLE=$CR_DIR/Helios/Treble
-CR_RAMDISK_Q=$CR_DIR/Helios/Q
+CR_RAMDISK=$CR_DIR/Cronos/Ramdisk
+CR_RAMDISK_TREBLE=$CR_DIR/Cronos/Treble
+CR_RAMDISK_Q=$CR_DIR/Cronos/Q
 # Compiled image name and location (Image/zImage)
 CR_KERNEL=$CR_DIR/arch/arm64/boot/Image
 # Compiled dtb by dtbtool
 CR_DTB=$CR_DIR/boot.img-dtb
 # Kernel Name and Version
-CR_VERSION=V2.6
-CR_NAME=HeliosKernel
+CR_VERSION=V3.0
+CR_NAME=CronosKernel
 # Thread count
 CR_JOBS=$(nproc --all)
 # Target Android version
@@ -69,7 +69,7 @@ CR_CONFIG_TREBLE=treble_defconfig
 CR_CONFIG_ONEUI=oneui_defconfig
 CR_CONFIG_G93X=herolte_defconfig
 CR_CONFIG_SPLIT=NULL
-CR_CONFIG_HELIOS=helios_defconfig
+CR_CONFIG_CRONOS=cronos_defconfig
 CR_ROOT="0"
 #####################################################
 
@@ -178,8 +178,8 @@ BUILD_GENERATE_CONFIG()
     echo " Copy $CR_CONFIG_TYPE "
     cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_TYPE >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   fi
-  echo " Copy $CR_CONFIG_HELIOS "
-  cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_HELIOS >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  echo " Copy $CR_CONFIG_CRONOS "
+  cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_CRONOS >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   echo " Set $CR_VARIANT to generated config "
   CR_CONFIG=tmp_defconfig
 }
