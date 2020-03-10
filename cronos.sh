@@ -71,6 +71,7 @@ CR_CONFIG_G93X=herolte_defconfig
 CR_CONFIG_SPLIT=NULL
 CR_CONFIG_CRONOS=cronos_defconfig
 CR_ROOT="0"
+CR_PERMISSIVE="0"
 #####################################################
 
 # Script functions
@@ -89,14 +90,17 @@ read -p "Variant? (1 (OneUI-Treble) | 2 (AOSP-Treble) | 3 (OneUI) | 4 (OneUI Q) 
 if [ "$aud" = "1" ]; then
      echo "Build OneUI-Treble Variant"
      CR_MODE="1"
+     CR_PERMISSIVE="1"
 fi
 if [ "$aud" = "2" ]; then
      echo "Build AOSP-Treble Variant"
      CR_MODE="2"
+     CR_PERMISSIVE="1"
 fi
 if [ "$aud" = "3" ]; then
      echo "Build OneUI Variant"
      CR_MODE="3"
+     CR_PERMISSIVE="1"
 fi
 if [ "$aud" = "4" ]; then
      echo "Build OneUI Q Variant"
@@ -180,6 +184,10 @@ BUILD_GENERATE_CONFIG()
   fi
   echo " Copy $CR_CONFIG_CRONOS "
   cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_CRONOS >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  if [ $CR_PERMISSIVE = "1" ]; then
+    echo " Building Permissive Kernel"
+    echo "CONFIG_ALWAYS_PERMISSIVE=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  fi
   echo " Set $CR_VARIANT to generated config "
   CR_CONFIG=tmp_defconfig
 }
