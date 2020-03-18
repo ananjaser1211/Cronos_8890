@@ -361,11 +361,19 @@ static int pm_callback_runtime_on(struct kbase_device *kbdev)
 	gpu_dvfs_start_env_data_gathering(kbdev);
 	platform->power_status = true;
 #ifdef CONFIG_MALI_DVFS
+#ifdef CONFIG_MALI_SEC_CL_BOOST
 	if (platform->dvfs_status && platform->wakeup_lock && !kbdev->pm.backend.metrics.is_full_compute_util)
+#else
+	if (platform->dvfs_status && platform->wakeup_lock)
+#endif
 		gpu_set_target_clk_vol(platform->gpu_dvfs_start_clock, false);
 	else
 #endif /* CONFIG_MALI_DVFS */
 		gpu_set_target_clk_vol(platform->cur_clock, false);
+
+#ifdef CONFIG_MALI_DVFS_USER_GOVERNOR
+	gpu_dvfs_notify_poweron();
+#endif
 
 	return 0;
 }
@@ -377,6 +385,10 @@ static void pm_callback_runtime_off(struct kbase_device *kbdev)
 		return;
 
 	GPU_LOG(DVFS_INFO, LSI_GPU_OFF, 0u, 0u, "runtime off callback\n");
+
+#ifdef CONFIG_MALI_DVFS_USER_GOVERNOR
+	gpu_dvfs_notify_poweroff();
+#endif
 
 	platform->power_status = false;
 

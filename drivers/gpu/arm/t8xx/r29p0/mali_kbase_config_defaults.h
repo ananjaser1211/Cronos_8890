@@ -173,8 +173,7 @@ enum {
 /**
  * Default scheduling tick granuality
  */
-/* MALI_SEC_INTEGRATION */
-#define DEFAULT_JS_SCHEDULING_PERIOD_NS    (50000000u) /* 100ms -> 50ms */
+#define DEFAULT_JS_SCHEDULING_PERIOD_NS    (100000000u) /* 100ms */
 
 /**
  * Default minimum number of scheduling ticks before jobs are soft-stopped.
@@ -182,62 +181,54 @@ enum {
  * This defines the time-slice for a job (which may be different from that of a
  * context)
  */
-/* MALI_SEC_INTEGRATION */
-#define DEFAULT_JS_SOFT_STOP_TICKS      (6) /* 100ms-200ms -> 300ms */
+#define DEFAULT_JS_SOFT_STOP_TICKS       (1) /* 100ms-200ms */
 
 /**
  * Default minimum number of scheduling ticks before CL jobs are soft-stopped.
  */
-/* MALI_SEC_INTEGRATION */
-#define DEFAULT_JS_SOFT_STOP_TICKS_CL    (6) /* 100ms-200ms -> 300ms*/
+#define DEFAULT_JS_SOFT_STOP_TICKS_CL    (1) /* 100ms-200ms */
 
 /**
  * Default minimum number of scheduling ticks before jobs are hard-stopped
  */
-/* MALI_SEC_INTEGRATION */
-#define DEFAULT_JS_HARD_STOP_TICKS_SS    (100) /* 5s */
-#define DEFAULT_JS_HARD_STOP_TICKS_SS_8408  (600) /* 30s */
+#define DEFAULT_JS_HARD_STOP_TICKS_SS    (50) /* 5s */
+#define DEFAULT_JS_HARD_STOP_TICKS_SS_8408  (300) /* 30s */
 
 /**
  * Default minimum number of scheduling ticks before CL jobs are hard-stopped.
  */
-/* MALI_SEC_INTEGRATION */
-#define DEFAULT_JS_HARD_STOP_TICKS_CL    (100) /* 5s */
+#define DEFAULT_JS_HARD_STOP_TICKS_CL    (50) /* 5s */
 
 /**
  * Default minimum number of scheduling ticks before jobs are hard-stopped
  * during dumping
  */
-/* MALI_SEC_INTEGRATION */
 #define DEFAULT_JS_HARD_STOP_TICKS_DUMPING   (15000) /* 1500s */
 
 /**
  * Default timeout for some software jobs, after which the software event wait
  * jobs will be cancelled.
  */
-/* MALI_SEC_INTEGRATION */
-#define DEFAULT_JS_SOFT_JOB_TIMEOUT ((u32)3000) /* 3s */
+#define DEFAULT_JS_SOFT_JOB_TIMEOUT (3000) /* 3s */
 
 /**
  * Default minimum number of scheduling ticks before the GPU is reset to clear a
  * "stuck" job
  */
-/* MALI_SEC_INTEGRATION */
-#define DEFAULT_JS_RESET_TICKS_SS           (110) /* 5.5s */
-#define DEFAULT_JS_RESET_TICKS_SS_8408     (450) /* 45s -> 22.5s */
+#define DEFAULT_JS_RESET_TICKS_SS           (55) /* 5.5s */
+#define DEFAULT_JS_RESET_TICKS_SS_8408     (450) /* 45s */
 
 /**
  * Default minimum number of scheduling ticks before the GPU is reset to clear a
  * "stuck" CL job.
  */
-/* MALI_SEC_INTEGRATION */
-#define DEFAULT_JS_RESET_TICKS_CL        (110) /* 5.5s */
+#define DEFAULT_JS_RESET_TICKS_CL        (55) /* 5.5s */
 
 /**
  * Default minimum number of scheduling ticks before the GPU is reset to clear a
  * "stuck" job during dumping.
  */
-#define DEFAULT_JS_RESET_TICKS_DUMPING   (15020) /* 1502s  -> 751s*/
+#define DEFAULT_JS_RESET_TICKS_DUMPING   (15020) /* 1502s */
 
 /**
  * Default number of milliseconds given for other jobs on the GPU to be
@@ -268,7 +259,8 @@ enum {
  * Note that as this prevents kbase from powering down shader cores, this limits
  * the available power policies to coarse_demand and always_on.
  */
-#define PLATFORM_POWER_DOWN_ONLY (0)
+/* MALI_SEC_INTEGRATION */
+#define PLATFORM_POWER_DOWN_ONLY (1)
 
 /**
  * Maximum frequency (in kHz) that the GPU can be clocked. For some platforms

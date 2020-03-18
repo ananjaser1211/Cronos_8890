@@ -324,17 +324,13 @@ static int gpu_validate_attrib_data(struct exynos_context *platform)
 	data = gpu_get_attrib_data(attrib, GPU_TRACE_LEVEL);
 	gpu_set_trace_level(data == 0 ? TRACE_ALL : (u32) data);
 #endif /* CONFIG_MALI_EXYNOS_TRACE */
+#ifdef CONFIG_MALI_DVFS_USER
+	data = gpu_get_attrib_data(attrib, GPU_UDVFS_ENABLE);
+	platform->udvfs_enable = data == 0 ? 0 : (u32) data;
+#endif
 	data = gpu_get_attrib_data(attrib, GPU_MO_MIN_CLOCK);
 	platform->mo_min_clock = data == 0 ? 0 : (u32) data;
 
-	data = gpu_get_attrib_data(attrib, GPU_SUSTAINABLE_GPU_CLOCK);
-	platform->sustainable.sustainable_gpu_clock = data == 0 ? 0 : (u32) data;
-
-	data = gpu_get_attrib_data(attrib, GPU_LOW_POWER_CPU_MAX_LOCK);
-	platform->sustainable.low_power_cluster1_maxlock = data == 0 ? 0 : (u32) data;
-
-	data = gpu_get_attrib_data(attrib, GPU_THRESHOLD_MAXLOCK);
-	platform->sustainable.threshold = data == 0 ? 0 : (u32) data;
 	return 0;
 }
 
@@ -358,6 +354,9 @@ static int gpu_context_init(struct kbase_device *kbdev)
 
 	mutex_init(&platform->gpu_clock_lock);
 	mutex_init(&platform->gpu_dvfs_handler_lock);
+#ifdef CONFIG_MALI_DVFS_USER
+	mutex_init(&platform->gpu_process_job_lock);
+#endif
 	spin_lock_init(&platform->gpu_dvfs_spinlock);
 
 	gpu_validate_attrib_data(platform);
@@ -383,7 +382,7 @@ static int kbase_platform_exynos5_init(struct kbase_device *kbdev)
 	if (gpu_context_init(kbdev) < 0)
 		goto init_fail;
 
-#if defined(CONFIG_SOC_EXYNOS7870) || defined(CONFIG_SOC_EXYNOS7880)
+#if defined(CONFIG_SOC_EXYNOS7420) || defined(CONFIG_SOC_EXYNOS7890)
 	if (gpu_device_specific_init(kbdev) < 0)
 		goto init_fail;
 #endif
@@ -590,15 +589,16 @@ static int exynos_secure_mem_enable(struct kbase_device *kbdev, int ion_fd, u64 
 		struct ion_client *client;
 		struct ion_handle *ion_handle;
 		size_t len = 0;
-		unsigned int CRC_CHECK_MASK = 0xFFFF & kbdev->sec_sr_info.secure_flags_crc_asp;
-		u64 SECURE_CRC_FLAGS = (kbdev->sec_sr_info.secure_flags_crc_asp >> CRC_CHECK_MASK) & 0xFFFF;
-		u64 input_flags = (flags >> CRC_CHECK_MASK) & 0xFFFF;
+		unsigned int CRC_CHECK_MASK = kbdev->sec_sr_info.secure_flags_crc_asp;
+		u64 input_flags = flags & CRC_CHECK_MASK;
 
 		ion_phys_addr_t phys = 0;
 
 		flush_all_cpu_caches();
 
-		if (input_flags == SECURE_CRC_FLAGS) {
+		dev_warn(kbdev->dev, "[G3D] input_flags %llx, CRC_CHECK_MASK %X\n",
+			input_flags, CRC_CHECK_MASK);
+		if (input_flags == BASE_MEM_RESERVED_BIT_19) {
 			reg->flags |= KBASE_REG_SECURE_CRC | KBASE_REG_SECURE;
 		} else {
 			client = ion_client_create(ion_exynos, "G3D");

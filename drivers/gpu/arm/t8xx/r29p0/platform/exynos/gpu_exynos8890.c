@@ -157,7 +157,7 @@ static gpu_attribute gpu_config_attributes[GPU_CONFIG_LIST_END] = {
 	{GPU_PMQOS_INT_DISABLE, 1},
 	{GPU_PMQOS_MIF_MAX_CLOCK, 1539000},
 	{GPU_PMQOS_MIF_MAX_CLOCK_BASE, 650},
-	{GPU_CL_DVFS_START_BASE, 419},
+	{GPU_CL_DVFS_START_BASE, 702},
 	{GPU_DEBUG_LEVEL, DVFS_WARNING},
 	{GPU_TRACE_LEVEL, TRACE_ALL},
 #ifdef CONFIG_MALI_DVFS_USER
@@ -205,7 +205,8 @@ struct regulator *g3d_m_regulator;
 
 int gpu_is_power_on(void)
 {
-	unsigned int val;
+	unsigned int val = 0;
+	unsigned int ret = 0;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 17, 0)
 	val = __raw_readl(EXYNOS_PMU_G3D_STATUS);
@@ -213,7 +214,12 @@ int gpu_is_power_on(void)
 	exynos_pmu_read(EXYNOS_PMU_G3D_STATUS, &val);
 #endif
 
-	return ((val & LOCAL_PWR_CFG) == LOCAL_PWR_CFG) ? 1 : 0;
+	ret = ((val & LOCAL_PWR_CFG) == LOCAL_PWR_CFG) ? 1 : 0;
+#if defined(CONFIG_REGULATOR_S2MPS16)
+	ret = ((ret == 1) && !s2m_get_dvs_is_on()) ? 1 : 0;
+#endif
+
+	return ret;
 }
 
 int gpu_power_init(struct kbase_device *kbdev)
@@ -495,14 +501,20 @@ int gpu_enable_dvs(struct exynos_context *platform)
 		return -1;
 	}
 
+	GPU_LOG(DVFS_INFO, LSI_GPU_DVS_ON, 0u, 0u, "DVS on callback\n");
+
 #if defined(CONFIG_REGULATOR_S2MPS16)
 #ifdef CONFIG_EXYNOS_CL_DVFS_G3D
-	if (!platform->dvs_is_enabled)
-	{
-		level = gpu_dvfs_get_level(gpu_get_cur_clock(platform));
-		exynos_cl_dvfs_stop(ID_G3D, level);
+	if (platform->exynos_pm_domain) {
+		mutex_lock(&platform->exynos_pm_domain->access_lock);
+		if (!platform->dvs_is_enabled && gpu_is_power_on()) {
+			level = gpu_dvfs_get_level(gpu_get_cur_clock(platform));
+			exynos_cl_dvfs_stop(ID_G3D, level);
+		}
+		mutex_unlock(&platform->exynos_pm_domain->access_lock);
 	}
 #endif /* CONFIG_EXYNOS_CL_DVFS_G3D */
+
 	/* Do not need to enable dvs during suspending */
 	if (!pkbdev->pm.suspending) {
 //		if (s2m_set_dvs_pin(true) != 0) {
@@ -522,6 +534,8 @@ int gpu_disable_dvs(struct exynos_context *platform)
 {
 	if (!platform->dvs_status)
 		return 0;
+
+	GPU_LOG(DVFS_INFO, LSI_GPU_DVS_OFF, 0u, 0u, "DVS off callback\n");
 
 #ifdef CONFIG_MALI_RT_PM
 #if defined(CONFIG_REGULATOR_S2MPS16)
