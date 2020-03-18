@@ -36,8 +36,10 @@ struct gpu_control_ops {
 
 int get_cpu_clock_speed(u32 *cpu_clock);
 int gpu_control_set_voltage(struct kbase_device *kbdev, int voltage);
+#if defined (CONFIG_SOC_EXYNOS8890)
+int gpu_control_set_m_voltage(struct kbase_device *kbdev, int clk);
+#endif
 int gpu_control_set_clock(struct kbase_device *kbdev, int clock);
-int gpu_control_set_pmqos(struct kbase_device *kbdev);
 int gpu_control_enable_clock(struct kbase_device *kbdev);
 int gpu_control_disable_clock(struct kbase_device *kbdev);
 int gpu_control_is_power_on(struct kbase_device *kbdev);

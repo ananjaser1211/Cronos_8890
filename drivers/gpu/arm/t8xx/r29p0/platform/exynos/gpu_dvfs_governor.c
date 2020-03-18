@@ -23,7 +23,7 @@
 #include <../pwrcal/S5E8890/S5E8890-vclk.h>
 #include <../pwrcal/pwrcal.h>
 #else
-#include <S5E7870/S5E7870-vclk.h>
+#include <S5E8890/S5E8890-vclk.h>
 #include <pwrcal.h>
 #endif
 #endif
@@ -271,11 +271,12 @@ int gpu_dvfs_decide_next_freq(struct kbase_device *kbdev, int utilization)
 
 static int gpu_dvfs_update_asv_table(struct exynos_context *platform)
 {
-	int i, voltage, dvfs_table_size;
+	int i, voltage, m_voltage, dvfs_table_size;
 	gpu_dvfs_info *dvfs_table;
 
 #ifdef CONFIG_PWRCAL
 	struct dvfs_rate_volt g3d_rate_volt[48];
+	struct dvfs_rate_volt g3d_m_rate_volt[48];
 	int cal_table_size;
 	int j;
 
@@ -298,6 +299,21 @@ static int gpu_dvfs_update_asv_table(struct exynos_context *platform)
 		}
 	}
 
+	cal_table_size = cal_dfs_get_rate_asv_table(dvs_g3dm, g3d_m_rate_volt);
+	if (!cal_table_size)
+		GPU_LOG(DVFS_WARNING, DUMMY, 0u, 0u, "Failed get G3D_M ASV table\n");
+
+	for (i = 0; i < dvfs_table_size; i++) {
+		for (j = 0; j < cal_table_size; j++) {
+			if (dvfs_table[i].clock * 1000 == g3d_m_rate_volt[j].rate) {
+				m_voltage = g3d_m_rate_volt[j].volt;
+				if (m_voltage > 0) {
+					dvfs_table[i].g3dm_voltage = g3d_m_rate_volt[j].volt;
+					GPU_LOG(DVFS_WARNING, DUMMY, 0u, 0u, "G3D_M %dKhz ASV is %duV\n", dvfs_table[i].clock*1000, dvfs_table[i].g3dm_voltage);
+				}
+			}
+		}
+	}
 #else
 	DVFS_ASSERT(platform);
 
