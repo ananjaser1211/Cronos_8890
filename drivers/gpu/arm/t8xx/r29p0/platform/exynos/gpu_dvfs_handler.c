@@ -85,6 +85,13 @@ int gpu_dvfs_handler_init(struct kbase_device *kbdev)
 	if (!platform->dvfs_status)
 		platform->dvfs_status = true;
 
+#ifdef CONFIG_MALI_DVFS_USER
+	platform->mif_min_step = -1;
+	platform->int_min_step = -1;
+	platform->apollo_min_step = -1;
+	platform->atlas_min_step = -1;
+	proactive_pm_qos_command(platform, GPU_CONTROL_PM_QOS_INIT);
+#endif
 	gpu_pm_qos_command(platform, GPU_CONTROL_PM_QOS_INIT);
 
 	gpu_set_target_clk_vol(platform->table[platform->step].clock, false);
@@ -103,6 +110,9 @@ int gpu_dvfs_handler_deinit(struct kbase_device *kbdev)
 		platform->dvfs_status = false;
 
 	gpu_pm_qos_command(platform, GPU_CONTROL_PM_QOS_DEINIT);
+#ifdef CONFIG_MALI_DVFS_USER
+	proactive_pm_qos_command(platform, GPU_CONTROL_PM_QOS_DEINIT);
+#endif
 
 	GPU_LOG(DVFS_INFO, DUMMY, 0u, 0u, "dvfs handler de-initialized\n");
 	return 0;

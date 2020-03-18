@@ -32,31 +32,7 @@
 #endif /* CONFIG_CPU_THERMAL_IPA */
 #include "gpu_custom_interface.h"
 
-#if defined (CONFIG_SOC_EXYNOS7870) && defined(CONFIG_PWRCAL)
-#include <linux/apm-exynos.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 17, 0)
-#include <mach/pm_domains-cal.h>
-#include <../pwrcal/S5E7870/S5E7870-vclk.h>
-#include <mach/asv-exynos.h>
-#else
 #include <soc/samsung/pm_domains-cal.h>
-#include <S5E7870/S5E7870-vclk.h>
-#include <soc/samsung/asv-exynos.h>
-#endif
-#elif defined (CONFIG_SOC_EXYNOS7880) && defined(CONFIG_PWRCAL)
-#include <linux/apm-exynos.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 17, 0)
-#include <mach/pm_domains-cal.h>
-#include <../pwrcal/S5E7880/S5E7880-vclk.h>
-#include <mach/asv-exynos.h>
-#else
-#include <soc/samsung/pm_domains-cal.h>
-#include <S5E7880/S5E7880-vclk.h>
-#include <soc/samsung/asv-exynos.h>
-#endif
-#else
-#include <mach/apm-exynos.h>
-#endif
 
 extern struct kbase_device *pkbdev;
 
@@ -104,6 +80,7 @@ static ssize_t show_clock(struct device *dev, struct device_attribute *attr, cha
 		mutex_unlock(&platform->gpu_clock_lock);
 	}
 #endif
+
 	ret += snprintf(buf+ret, PAGE_SIZE-ret, "%d", clock);
 
 	if (ret < PAGE_SIZE - 1) {

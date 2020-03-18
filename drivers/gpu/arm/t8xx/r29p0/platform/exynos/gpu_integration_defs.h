@@ -88,6 +88,9 @@ struct kbase_vendor_callbacks {
 	bool (*mem_profile_check_kctx)(void *ctx);
 	void (*pm_record_state)(void *kbdev, bool is_active);
 	int (*register_dump)(void);
+#ifdef CONFIG_MALI_DVFS_USER
+	bool (*dvfs_process_job)(void *atom);
+#endif
 };
 
 #endif /* _SEC_INTEGRATION_H_ */

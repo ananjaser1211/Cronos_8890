@@ -19,5 +19,5 @@
 #
 #
 
-source "drivers/gpu/arm/t83x/r29p0/tests/kutf/Kconfig"
-source "drivers/gpu/arm/t83x/r29p0/tests/mali_kutf_irq_test/Kconfig"
+source "drivers/gpu/arm/t8xx/r29p0/tests/kutf/Kconfig"
+source "drivers/gpu/arm/t8xx/r29p0/tests/mali_kutf_irq_test/Kconfig"

@@ -209,4 +209,4 @@ config MALI_PRFCNT_SET_SECONDARY
 	  If unsure, say N.
 
 # MALI_SEC_INTEGRATION
-source "drivers/gpu/arm/t83x/r29p0/platform/Kconfig"
+source "drivers/gpu/arm/t8xx/r29p0/platform/Kconfig"

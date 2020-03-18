@@ -21,33 +21,18 @@
 #include <linux/pm_qos.h>
 #include <linux/pm_domain.h>
 #include <linux/clk.h>
-
-#if defined(CONFIG_SOC_EXYNOS7870) && defined(CONFIG_PWRCAL)
+#if defined(CONFIG_SOC_EXYNOS8890) && defined(CONFIG_PWRCAL)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 17, 0)
 #include <../pwrcal/pwrcal.h>
-#include <../pwrcal/S5E7870/S5E7870-vclk.h>
+#include <../pwrcal/S5E8890/S5E8890-vclk.h>
 #include <mach/pm_domains-cal.h>
 #else
 #include <pwrcal.h>
-#include <S5E7870/S5E7870-vclk.h>
-#include <S5E7870/S5E7870-vclk-internal.h>
+#include <S5E8890/S5E8890-vclk.h>
+#include <S5E8890/S5E8890-vclk-internal.h>
 #include <soc/samsung/pm_domains-cal.h>
 #endif /* LINUX_VERSION */
-#endif /* CONFIG_SOC_EXYNOS7870 && CONFIG_PWRCAL */
-
-#if defined(CONFIG_SOC_EXYNOS7880) && defined(CONFIG_PWRCAL)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 17, 0)
-#include <../pwrcal/pwrcal.h>
-#include <../pwrcal/S5E7880/S5E7880-vclk.h>
-#include <mach/pm_domains-cal.h>
-#else
-#include <pwrcal.h>
-#include <S5E7880/S5E7880-vclk.h>
-#include <S5E7880/S5E7880-vclk-internal.h>
-#include <soc/samsung/pm_domains-cal.h>
-#endif /* LINUX_VERSION */
-#endif /* CONFIG_SOC_EXYNOS7880 && CONFIG_PWRCAL */
-
+#endif /* CONFIG_SOC_EXYNOS8890 && CONFIG_PWRCAL */
 
 #include "mali_kbase_platform.h"
 #include "gpu_dvfs_handler.h"
@@ -117,6 +102,25 @@ int gpu_control_set_voltage(struct kbase_device *kbdev, int voltage)
 	return ret;
 }
 
+int gpu_control_set_m_voltage(struct kbase_device *kbdev, int clk)
+{
+	int level;
+	int m_vol;
+	gpu_dvfs_info *dvfs_table;
+	struct exynos_context *platform = (struct exynos_context *) kbdev->platform_context;
+
+	dvfs_table = platform->table;
+	level = gpu_dvfs_get_level(clk);
+	m_vol = dvfs_table[level].g3dm_voltage;
+
+	if (regulator_set_voltage(g3d_m_regulator, m_vol, m_vol) != 0) {
+		GPU_LOG(DVFS_ERROR, DUMMY, 0u, 0u, "%s: failed to set m_voltage, voltage: %d\n", __func__, m_vol);
+		return -1;
+	}
+
+	return 0;
+}
+
 int gpu_control_set_clock(struct kbase_device *kbdev, int clock)
 {
 	int ret = 0;
@@ -167,27 +171,6 @@ int gpu_control_set_clock(struct kbase_device *kbdev, int clock)
 	return ret;
 }
 
-int gpu_control_set_pmqos(struct kbase_device *kbdev)
-{
-	int ret = 0;
-
-	struct exynos_context *platform = (struct exynos_context *) kbdev->platform_context;
-	if (!platform) {
-		GPU_LOG(DVFS_ERROR, DUMMY, 0u, 0u, "%s: platform context is null\n", __func__);
-		return -ENODEV;
-	}
-
-	if (platform->dvs_is_enabled) {
-		GPU_LOG(DVFS_INFO, DUMMY, 0u, 0u,
-			"%s: can't set pmqos in the dvs mode\n", __func__);
-		return 0;
-	}
-#ifdef CONFIG_MALI_DVFS
-	gpu_pm_qos_command(platform, GPU_CONTROL_PM_QOS_SET);
-#endif
-	return ret;
-}
-
 int gpu_control_enable_clock(struct kbase_device *kbdev)
 {
 	int ret = 0;
@@ -227,6 +210,9 @@ int gpu_control_disable_clock(struct kbase_device *kbdev)
 	gpu_dvfs_update_time_in_state(platform->cur_clock);
 #ifdef CONFIG_MALI_DVFS
 	gpu_pm_qos_command(platform, GPU_CONTROL_PM_QOS_RESET);
+#ifdef CONFIG_MALI_DVFS_USER
+	proactive_pm_qos_command(platform, GPU_CONTROL_PM_QOS_RESET);
+#endif
 #endif /* CONFIG_MALI_DVFS */
 
 	return ret;
@@ -265,8 +251,16 @@ int gpu_control_enable_customization(struct kbase_device *kbdev)
 	if (ctr_ops->set_clock_to_osc)
 		ctr_ops->set_clock_to_osc(platform);
 
-	ret = gpu_enable_dvs(platform);
+#ifdef CONFIG_MALI_SEC_HWCNT
+	mutex_lock(&kbdev->hwcnt.dvs_lock);
+#endif
+
 	platform->dvs_is_enabled = true;
+	ret = gpu_enable_dvs(platform);
+
+#ifdef CONFIG_MALI_SEC_HWCNT
+	mutex_unlock(&kbdev->hwcnt.dvs_lock);
+#endif
 
 	mutex_unlock(&platform->gpu_clock_lock);
 #endif /* CONFIG_REGULATOR */

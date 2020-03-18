@@ -19,7 +19,9 @@
 #include <mali_midg_regmap.h>
 #include <mali_kbase_sync.h>
 
+#ifdef CONFIG_SCHED_HMP
 #include <mali_uk.h>
+#endif
 
 #include <linux/pm_qos.h>
 #include <linux/sched.h>
