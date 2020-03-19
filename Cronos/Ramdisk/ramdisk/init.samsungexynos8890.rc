@@ -314,7 +314,7 @@ on boot
     # write /proc/sys/vm/min_free_order_shift 1
 
 # SSWAP
-    write /proc/sys/vm/swappiness 190
+    write /proc/sys/vm/swappiness 150
 
     # Allow to access debugfs for system:system
     chmod 755 /sys/kernel/debug
