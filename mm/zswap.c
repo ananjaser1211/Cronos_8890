@@ -101,7 +101,7 @@ module_param_named(enabled, zswap_enabled, bool, 0444);
 #define ZSWAP_COMPRESSOR_DEFAULT "lzo"
 #endif
 static char *zswap_compressor = ZSWAP_COMPRESSOR_DEFAULT;
-module_param_named(compressor, zswap_compressor, charp, 0444);
+module_param_named(compressor, zswap_compressor, charp, 0644);
 
 /* The maximum rate (1/1000) of memory that the compressed pool can occupy */
 static unsigned int zswap_max_pool_percent = 500;
