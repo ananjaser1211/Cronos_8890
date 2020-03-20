@@ -11,13 +11,8 @@ endif
 endif
 endif
 
-ifeq ($(TARGET_BUILD_VARIANT), user)
-ifeq ($(SEC_BUILD_OPTION_PRODUCT_SHIP), true)
-ifeq ($(SEC_BUILD_OPTION_SELINUX_ENFORCE),true)
+# Force the selinux config regardless of buildvariant
 EXTRA_CFLAGS += -DCONFIG_ALWAYS_ENFORCE=false
-endif
-endif
-endif
 # ] SEC_SELINUX_PORTING_COMMON
 
 obj-$(CONFIG_SECURITY_SELINUX) := selinux.o
