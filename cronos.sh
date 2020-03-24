@@ -38,7 +38,7 @@ CR_KERNEL=$CR_DIR/arch/arm64/boot/Image
 # Compiled dtb by dtbtool
 CR_DTB=$CR_DIR/boot.img-dtb
 # Kernel Name and Version
-CR_VERSION=V3.0
+CR_VERSION=V3.0-LEGACY
 CR_NAME=CronosKernel
 # Thread count
 CR_JOBS=$(nproc --all)
