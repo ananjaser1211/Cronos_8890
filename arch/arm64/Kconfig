@@ -752,7 +752,6 @@ config FORCE_MAX_ZONEORDER
 
 config UNMAP_KERNEL_AT_EL0
 	bool "Unmap kernel when running in userspace (aka \"KAISER\")" if EXPERT
-	default y
 	help
 	  Speculation attacks against some high-performance processors can
 	  be used to bypass MMU permission checks and leak kernel data to
@@ -851,7 +850,6 @@ menu "ARMv8.1 architectural features"
 
 config ARM64_PAN
 	bool "Enable support for Privileged Access Never (PAN)"
-	default y
 	help
 	 Privileged Access Never (PAN; part of the ARMv8.1 Extensions)
 	 prevents the kernel or hypervisor from accessing user-space (EL0)
@@ -867,7 +865,6 @@ endmenu
 
 config ARM64_UAO
 	bool "Enable support for User Access Override (UAO)"
-	default y
 	help
 	  User Access Override (UAO; part of the ARMv8.2 Extensions)
 	  causes the 'unprivileged' variant of the load/store instructions to
