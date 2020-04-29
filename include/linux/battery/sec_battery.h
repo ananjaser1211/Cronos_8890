@@ -62,8 +62,8 @@
 #define STORE_MODE_CHARGING_MAX 35
 #define STORE_MODE_CHARGING_MIN 30
 #else
-//#define STORE_MODE_CHARGING_MAX 70
-//#define STORE_MODE_CHARGING_MIN 60
+#define STORE_MODE_CHARGING_MAX 70
+#define STORE_MODE_CHARGING_MIN 60
 #endif
 
 #define ADC_CH_COUNT		10
@@ -528,8 +528,6 @@ enum {
 	EXT_DEV_GAMEPAD_CHG,
 	EXT_DEV_GAMEPAD_OTG,
 };
-
-void charger_control_init(struct sec_battery_info *info);
 
 #ifdef CONFIG_OF
 extern int adc_read(struct sec_battery_info *battery, int channel);
