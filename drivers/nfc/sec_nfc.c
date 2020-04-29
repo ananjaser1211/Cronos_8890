@@ -52,11 +52,6 @@
 #include <linux/smc.h>
 #endif
 
-#include <linux/moduleparam.h>
-
-static int wl_nfc = 2;
-module_param(wl_nfc, int, 0644);
-
 #define SEC_NFC_GET_INFO(dev) i2c_get_clientdata(to_i2c_client(dev))
 enum sec_nfc_irq {
 	SEC_NFC_SKIP = -1,
@@ -126,7 +121,7 @@ static irqreturn_t sec_nfc_irq_thread_fn(int irq, void *dev_id)
 	mutex_unlock(&info->i2c_info.read_mutex);
 
 	wake_up_interruptible(&info->i2c_info.read_wait);
-	wake_lock_timeout(&info->nfc_wake_lock, wl_nfc*HZ);
+	wake_lock_timeout(&info->nfc_wake_lock, 2*HZ);
 
 	return IRQ_HANDLED;
 }
