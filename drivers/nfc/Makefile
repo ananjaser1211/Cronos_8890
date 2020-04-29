@@ -8,5 +8,6 @@ obj-$(CONFIG_NFC_PN547)		+= pn547.o
 obj-$(CONFIG_NFC_P61)		+= p61.o
 obj-$(CONFIG_ESE_P3_LSI)		+= ese_p3.o
 obj-$(CONFIG_ESE_COFFEE)		+= sec_coffee.o
+obj-y				+= nfc_logger/
 
 ccflags-$(CONFIG_NFC_DEBUG) := -DDEBUG

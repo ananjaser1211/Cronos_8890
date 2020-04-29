@@ -133,5 +133,5 @@ config NFC_CLKREQ_SUSPEND
 	  This can be used when it needs to observe NFC_CLK_REQ pin at suspend.
 
 source "drivers/nfc/secnfc/Kconfig"
-
+source "drivers/nfc/nfc_logger/Kconfig"
 endmenu
