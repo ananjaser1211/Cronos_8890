@@ -38,7 +38,7 @@ CR_KERNEL=$CR_DIR/arch/arm64/boot/Image
 # Compiled dtb by dtbtool
 CR_DTB=$CR_DIR/boot.img-dtb
 # Kernel Name and Version
-CR_VERSION=V3.5
+CR_VERSION=V3.6
 CR_NAME=CronosKernel
 # Thread count
 CR_JOBS=$(nproc --all)
@@ -105,6 +105,7 @@ fi
 if [ "$aud" = "4" ]; then
      echo "Build OneUI Q Variant"
      CR_MODE="4"
+     CR_PERMISSIVE="1"
 fi
 
 # Got Root?
