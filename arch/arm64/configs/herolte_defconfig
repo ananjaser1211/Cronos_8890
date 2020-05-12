@@ -1050,7 +1050,7 @@ CONFIG_RFKILL_PM=y
 # CONFIG_NET_9P is not set
 # CONFIG_CAIF is not set
 # CONFIG_CEPH_LIB is not set
-CONFIG_NFC=y
+# CONFIG_NFC is not set
 # CONFIG_NFC_DIGITAL is not set
 # CONFIG_NFC_NCI is not set
 # CONFIG_NFC_HCI is not set
