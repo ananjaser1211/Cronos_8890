@@ -72,6 +72,7 @@ CR_CONFIG_SPLIT=NULL
 CR_CONFIG_CRONOS=cronos_defconfig
 CR_ROOT="0"
 CR_PERMISSIVE="0"
+CR_HALLIC="0"
 #####################################################
 
 # Script functions
@@ -106,6 +107,7 @@ if [ "$aud" = "4" ]; then
      echo "Build OneUI Q Variant"
      CR_MODE="4"
      CR_PERMISSIVE="1"
+     CR_HALLIC="1"
 fi
 
 # Got Root?
@@ -188,6 +190,10 @@ BUILD_GENERATE_CONFIG()
   if [ $CR_PERMISSIVE = "1" ]; then
     echo " Building Permissive Kernel"
     echo "CONFIG_ALWAYS_PERMISSIVE=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  fi
+  if [ $CR_HALLIC = "1" ]; then
+    echo " Inverting HALL_IC Status"
+    echo "CONFIG_HALL_EVENT_REVERSE=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   fi
   echo " Set $CR_VARIANT to generated config "
   CR_CONFIG=tmp_defconfig
