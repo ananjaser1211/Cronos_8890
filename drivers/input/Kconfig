@@ -252,6 +252,15 @@ config HALL_M1120
 	help
 	  Enable Hall M1120 Feature
 
+config HALL_EVENT_REVERSE
+	tristate "Adjusting the status value of HALL IC"
+	default n
+	help
+	  Adjusting the status value of HALL IC.
+	  This was required from input FW.
+
+	  If unsure, say N.
+
 comment "Input Device Drivers"
 
 source "drivers/input/keyboard/Kconfig"
