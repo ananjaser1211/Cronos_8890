@@ -111,12 +111,12 @@ if [ "$aud" = "4" ]; then
 fi
 
 # Got Root?
-read -p "Kernel SU? (y/n) > " yn
-if [ "$yn" = "Y" -o "$yn" = "y" ]; then
-     echo " WARNING : KernelSU Enabled!"
-     export CONFIG_ASSISTED_SUPERUSER=y
-     CR_ROOT="1"
-fi
+#read -p "Kernel SU? (y/n) > " yn
+#if [ "$yn" = "Y" -o "$yn" = "y" ]; then
+#     echo " WARNING : KernelSU Enabled!"
+#     export CONFIG_ASSISTED_SUPERUSER=y
+#     CR_ROOT="1"
+#fi
 
 BUILD_CLEAN()
 {
