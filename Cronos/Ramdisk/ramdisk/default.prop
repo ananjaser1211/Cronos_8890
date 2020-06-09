@@ -59,6 +59,6 @@ ro.config.dmverity=false
 #
 # BOOTIMAGE_BUILD_PROPERTIES
 #
-ro.bootimage.build.date=Tue Nov 26 13:29:36 KST 2019
-ro.bootimage.build.date.utc=1574742576
-ro.bootimage.build.fingerprint=samsung/gracerltexx/gracerlte:9/PPR1.180610.011/N935FXXU6CSK1:user/test-keys
+ro.bootimage.build.date=Wed May 6 15:32:33 KST 2020
+ro.bootimage.build.date.utc=1588746753
+ro.bootimage.build.fingerprint=samsung/gracerltexx/gracerlte:9/PPR1.180610.011/N935FXXS7CTE1:user/test-keys
