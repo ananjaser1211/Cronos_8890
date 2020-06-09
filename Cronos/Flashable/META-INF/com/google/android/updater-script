@@ -1,9 +1,9 @@
 run_program("/sbin/busybox", "mount", "/system");
 run_program("/sbin/busybox", "mount", "/data");
 ui_print("***********************");
-ui_print("* HeliosKernel V2.5");
+ui_print("* CronosKernel V4.0");
 ui_print("* For Galaxy G930X/G935X");
-ui_print("* Android 9.0");
+ui_print("* Android 9.0 - OneUI Pie");
 ui_print("* By AnanJaser1211 @Xda");
 ui_print("***********************");
 ui_print("");
@@ -11,9 +11,6 @@ run_program("/sbin/mount", "-t", "auto", "/system");
 run_program("/sbin/mount", "-t", "auto", "/data");
 delete_recursive("/system/priv-app/EliteTuner");
 delete_recursive("/system/priv-app/HK*");
-ui_print("-- Removing GameOptimizer");
-delete_recursive("/system/app/GameOptimizer");
-delete_recursive("/system/app/GameOptimizingService");
 ui_print("-- Installing HKTweaks");
 #####################################################################
 #                       Phone Variant Detection
@@ -21,14 +18,14 @@ ui_print("-- Installing HKTweaks");
 ui_print("-- Detecting phone variant...");
 if is_substring("G930", getprop("ro.boot.bootloader")) then
     ui_print("-- Galaxy S7 Flat detected, extracting files...");
-    package_extract_file("Helios/device/herolte/boot.img", "/dev/block/platform/155a0000.ufs/by-name/BOOT");
+    package_extract_file("Cronos/device/herolte/boot.img", "/dev/block/platform/155a0000.ufs/by-name/BOOT");
 endif;
 if is_substring("G935", getprop("ro.boot.bootloader")) then
     ui_print("-- Galaxy S7 Edge detected, extracting files...");
-    package_extract_file("Helios/device/hero2lte/boot.img", "/dev/block/platform/155a0000.ufs/by-name/BOOT");
+    package_extract_file("Cronos/device/hero2lte/boot.img", "/dev/block/platform/155a0000.ufs/by-name/BOOT");
 endif;
 ui_print("-- Extracting System Files...");
-package_extract_dir("Helios/system", "/system");
+package_extract_dir("Cronos/system", "/system");
 unmount("/system");
-ui_print(" Enjoy Helios ");
+ui_print(" Enjoy Cronos ");
 ui_print("***********************");
