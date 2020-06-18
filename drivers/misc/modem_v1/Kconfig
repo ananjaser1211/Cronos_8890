@@ -13,6 +13,10 @@ config SEC_MODEM_SS310AP
 	select CP_SECURE_BOOT
 	default y
 
+config MODEM_PIE_REV
+	bool "Android 9.0 Bootloader/Modem Support"
+	default n
+
 menu "Configuration Description"
 config BOOT_DEVICE_SPI
 	bool "boot device: SPI"
