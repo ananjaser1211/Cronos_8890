@@ -64,6 +64,10 @@ CR_VARIANT_G930=G930X
 CR_DTSFILES_G935="exynos8890-hero2lte_eur_open_00.dtb exynos8890-hero2lte_eur_open_01.dtb exynos8890-hero2lte_eur_open_03.dtb exynos8890-hero2lte_eur_open_04.dtb exynos8890-hero2lte_eur_open_08.dtb"
 CR_CONFIG_G935=hero2_defconfig
 CR_VARIANT_G935=G935X
+# Device specific Variables [SM-N935X]
+CR_DTSFILES_N935="exynos8890-gracelte_eur_open_00.dtb exynos8890-gracelte_eur_open_01.dtb exynos8890-gracelte_eur_open_02.dtb exynos8890-gracelte_eur_open_03.dtb exynos8890-gracelte_eur_open_05.dtb exynos8890-gracelte_eur_open_07.dtb exynos8890-gracelte_eur_open_09.dtb exynos8890-gracelte_eur_open_11.dtb"
+CR_CONFIG_N935=gracer_defconfig
+CR_VARIANT_N935=N935X
 # Common configs
 CR_CONFIG_TREBLE=treble_defconfig
 CR_CONFIG_ONEUI=oneui_defconfig
@@ -275,8 +279,8 @@ clear
 echo "----------------------------------------------"
 echo "$CR_NAME $CR_VERSION Build Script"
 echo "----------------------------------------------"
-PS3='Please select your option (1-3): '
-menuvar=("SM-G930X" "SM-G935X" "Exit")
+PS3='Please select your option (1-4): '
+menuvar=("SM-G930X" "SM-G935X" "SM-N935X" "Exit")
 select menuvar in "${menuvar[@]}"
 do
     case $menuvar in
@@ -364,6 +368,57 @@ do
             CR_CONFIG=$CR_CONFIG_G93X
             CR_CONFIG_SPLIT=$CR_CONFIG_G935
             CR_DTSFILES=$CR_DTSFILES_G935
+            BUILD_IMAGE_NAME
+            BUILD_GENERATE_CONFIG
+            BUILD_ZIMAGE
+            BUILD_DTB
+            PACK_BOOT_IMG
+            BUILD_ROOT
+            echo " "
+            echo "----------------------------------------------"
+            echo "$CR_VARIANT kernel build finished."
+            echo "Compiled DTB Size = $sizdT Kb"
+            echo "Kernel Image Size = $sizT Kb"
+            echo "Boot Image   Size = $sizkT Kb"
+            echo "$CR_PRODUCT/$CR_IMAGE_NAME.img Ready"
+            echo "Press Any key to end the script"
+            echo "----------------------------------------------"
+            read -n1 -r key
+            break
+            ;;
+        "SM-N935X")
+            clear
+            echo "Starting $CR_VARIANT_N935 kernel build..."
+            if [ $CR_MODE = "1" ]; then
+              echo " Building Oneui-Treble variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
+              CR_VARIANT=$CR_VARIANT_N935-TrebleTW
+              CR_DTB_MOUNT=$CR_DTS_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_TREBLE
+            fi
+            if [ $CR_MODE = "2" ]; then
+              echo " Building AOSP-Treble variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
+              CR_VARIANT=$CR_VARIANT_N935-Treble
+              CR_DTB_MOUNT=$CR_DTS_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_TREBLE
+            fi
+            if [ $CR_MODE = "3" ]; then
+              echo " Building OneUI variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
+              CR_VARIANT=$CR_VARIANT_N935-TW
+              CR_DTB_MOUNT=$CR_DTS_ONEUI
+            fi
+            if [ $CR_MODE = "4" ]; then
+              echo " Building Oneui-Q variant "
+              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
+              CR_VARIANT=$CR_VARIANT_N935-Q
+              CR_DTB_MOUNT=$CR_DTS_ONEUI
+              CR_RAMDISK=$CR_RAMDISK_Q
+            fi
+            CR_CONFIG=$CR_CONFIG_G93X
+            CR_CONFIG_SPLIT=$CR_CONFIG_N935
+            CR_DTSFILES=$CR_DTSFILES_N935
             BUILD_IMAGE_NAME
             BUILD_GENERATE_CONFIG
             BUILD_ZIMAGE
