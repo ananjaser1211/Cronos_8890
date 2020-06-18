@@ -71,7 +71,7 @@ CR_VARIANT_N935=N935X
 # Common configs
 CR_CONFIG_TREBLE=treble_defconfig
 CR_CONFIG_ONEUI=oneui_defconfig
-CR_CONFIG_G93X=herolte_defconfig
+CR_CONFIG_8890=exynos8890_defconfig
 CR_CONFIG_SPLIT=NULL
 CR_CONFIG_CRONOS=cronos_defconfig
 CR_ROOT="0"
@@ -327,7 +327,7 @@ do
               CR_DTB_MOUNT=$CR_DTS_ONEUI
               CR_RAMDISK=$CR_RAMDISK_Q
             fi
-            CR_CONFIG=$CR_CONFIG_G93X
+            CR_CONFIG=$CR_CONFIG_8890
             CR_CONFIG_SPLIT=$CR_CONFIG_G930
             CR_DTSFILES=$CR_DTSFILES_G930
             BUILD_IMAGE_NAME
@@ -370,7 +370,7 @@ do
               CR_DTB_MOUNT=$CR_DTS_ONEUI
               CR_RAMDISK=$CR_RAMDISK_Q
             fi
-            CR_CONFIG=$CR_CONFIG_G93X
+            CR_CONFIG=$CR_CONFIG_8890
             CR_CONFIG_SPLIT=$CR_CONFIG_G935
             CR_DTSFILES=$CR_DTSFILES_G935
             BUILD_IMAGE_NAME
@@ -413,7 +413,7 @@ do
               CR_DTB_MOUNT=$CR_DTS_ONEUI
               CR_RAMDISK=$CR_RAMDISK_Q
             fi
-            CR_CONFIG=$CR_CONFIG_G93X
+            CR_CONFIG=$CR_CONFIG_8890
             CR_CONFIG_SPLIT=$CR_CONFIG_N935
             CR_DTSFILES=$CR_DTSFILES_N935
             BUILD_IMAGE_NAME
