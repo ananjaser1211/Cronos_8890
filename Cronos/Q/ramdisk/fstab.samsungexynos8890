@@ -7,8 +7,8 @@
 #/dev/block/platform/155a0000.ufs/by-name/SYSTEM         /system     ext4    ro,errors=panic,noload                                                                                                      wait
 /dev/block/platform/155a0000.ufs/by-name/CACHE          /cache      ext4    noatime,nosuid,nodev,noauto_da_alloc,discard,journal_async_commit,data=ordered,errors=panic                                 wait,check
 /dev/block/platform/155a0000.ufs/by-name/CACHE		/cache		f2fs	rw,nosuid,nodev,noatime,inline_xattr,flush_merge,nobarrier					wait,check,formattable
-/dev/block/platform/155a0000.ufs/by-name/USERDATA       /data       ext4    noatime,nosuid,nodev,noauto_da_alloc,discard,journal_async_commit,data=ordered,errors=panic,debug_bdinfo     		wait,check,encryptable=footer,quota
-/dev/block/platform/155a0000.ufs/by-name/USERDATA	/data		f2fs	rw,nosuid,nodev,noatime,inline_xattr,flush_merge,nobarrier,fsync_mode=nobarrier			latemount,wait,check,encryptable=footer,formattable,length=-16384
+/dev/block/platform/155a0000.ufs/by-name/USERDATA       /data       ext4    noatime,nosuid,nodev,noauto_da_alloc,discard,journal_async_commit,data=ordered,errors=panic,debug_bdinfo     		wait,check,quota
+/dev/block/platform/155a0000.ufs/by-name/USERDATA	/data		f2fs	rw,nosuid,nodev,noatime,inline_xattr,flush_merge,nobarrier,fsync_mode=nobarrier			latemount,wait,check,formattable
 /dev/block/platform/155a0000.ufs/by-name/EFS            /mnt/vendor/efs        ext4    noatime,nosuid,nodev,noauto_da_alloc,discard,journal_async_commit,data=ordered,errors=panic                                 wait,check
 
 # VOLD :: fstab.gracerlte
