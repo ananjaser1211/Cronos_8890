@@ -174,6 +174,15 @@ BUILD_GENERATE_CONFIG()
     echo " Building Permissive Kernel"
     echo "CONFIG_ALWAYS_PERMISSIVE=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   fi
+  echo " Disable S-PEN"
+  echo "# CONFIG_INPUT_WACOM is not set" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  echo "# CONFIG_EPEN_WACOM_W9018 is not set" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  echo " Configure TWRP"
+  echo "CONFIG_RD_LZMA=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  echo "CONFIG_DECOMPRESS_LZMA=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  echo "CONFIG_CC_OPTIMIZE_FOR_SIZE=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  echo "CONFIG_F2FS_FS=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  echo "CONFIG_F2FS_FS_SECURITY=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   echo " Set $CR_VARIANT to generated config "
   CR_CONFIG=tmp_defconfig
 }
