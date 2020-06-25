@@ -27,21 +27,6 @@ struct ion_device *ion_exynos;
 /* starting from index=1 regarding default index=0 for system heap */
 static int nr_heaps = 1;
 
-struct exynos_ion_platform_heap {
-	struct ion_platform_heap heap_data;
-	struct reserved_mem *rmem;
-	unsigned int id;
-	unsigned int compat_ids;
-	bool secure;
-	bool reusable;
-	bool recyclable;
-	bool protected;
-	bool noprot;
-	atomic_t secure_ref;
-	struct device dev;
-	struct ion_heap *heap;
-};
-
 static struct ion_platform_heap ion_noncontig_heap = {
 	.name = "ion_noncontig_heap",
 	.type = ION_HEAP_TYPE_SYSTEM,
@@ -50,6 +35,7 @@ static struct ion_platform_heap ion_noncontig_heap = {
 
 static struct exynos_ion_platform_heap plat_heaps[ION_NUM_HEAPS];
 
+#ifdef CONFIG_EXYNOS_CONTENT_PATH_PROTECTION
 static int __find_platform_heap_id(unsigned int heap_id)
 {
 	int i;
@@ -65,7 +51,6 @@ static int __find_platform_heap_id(unsigned int heap_id)
 	return i;
 }
 
-#ifdef CONFIG_EXYNOS_CONTENT_PATH_PROTECTION
 static int __ion_secure_protect_buffer(struct exynos_ion_platform_heap *pdata,
 					struct ion_buffer *buffer)
 {
@@ -275,9 +260,9 @@ static int __init exynos_ion_reserved_mem_setup(struct reserved_mem *rmem)
 	pdata->reusable = !!of_get_flat_dt_prop(rmem->fdt_node, "reusable", NULL);
 	pdata->noprot = !!of_get_flat_dt_prop(rmem->fdt_node, "noprot", NULL);
 #ifdef CONFIG_ION_RBIN_HEAP
-	pdata->recyclable = !!of_get_flat_dt_prop(rmem->fdt_node, "recyclable", NULL);
+	pdata->reusable = !!of_get_flat_dt_prop(rmem->fdt_node, "reusable", NULL);
 #else
-	pdata->recyclable = false;
+	pdata->reusable = false;
 #endif
 
 	prop = of_get_flat_dt_prop(rmem->fdt_node, "id", &len);
@@ -324,7 +309,7 @@ static int __init exynos_ion_reserved_mem_setup(struct reserved_mem *rmem)
 	else
 		heap_data->align = be32_to_cpu(prop[0]);
 
-	if (pdata->reusable || pdata->recyclable) {
+	if (pdata->reusable) {
 		int ret;
 
 		if (pdata->reusable)
@@ -342,7 +327,7 @@ static int __init exynos_ion_reserved_mem_setup(struct reserved_mem *rmem)
 			return ret;
 		}
 #ifdef CONFIG_RBIN
-		if (pdata->recyclable) {
+		if (pdata->reusable) {
 			dev_set_cma_rbin(pdata->dev.cma_area);
 			totalrbin_pages += (heap_data->size / PAGE_SIZE);
 			/*
@@ -396,7 +381,7 @@ int ion_exynos_contig_heap_info(int region_id, phys_addr_t *phys, size_t *size)
 
 	for (i = 1; i < nr_heaps; i++) {
 		if (plat_heaps[i].id == region_id) {
-			if (plat_heaps[i].reusable || plat_heaps[i].recyclable) {
+			if (plat_heaps[i].reusable) {
 				pr_err("%s: operation not permitted for the"
 						"cma region %s(%d)\n", __func__,
 						plat_heaps[i].heap_data.name,
@@ -505,7 +490,6 @@ static int exynos_ion_populate_heaps(struct platform_device *pdev,
 	int i, ret;
 
 	plat_heaps[0].reusable = false;
-	plat_heaps[0].recyclable = false;
 	memcpy(&plat_heaps[0].heap_data, &ion_noncontig_heap,
 				sizeof(struct ion_platform_heap));
 
@@ -521,7 +505,7 @@ static int exynos_ion_populate_heaps(struct platform_device *pdev,
 
 		ion_device_add_heap(ion_exynos, plat_heaps[i].heap);
 
-		if (plat_heaps[i].reusable || plat_heaps[i].recyclable)
+		if (plat_heaps[i].reusable)
 			exynos_ion_create_cma_devices(&plat_heaps[i]);
 	}
 

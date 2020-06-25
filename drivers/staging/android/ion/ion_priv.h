@@ -31,11 +31,27 @@
 #include <linux/dma-direction.h>
 #include <trace/events/ion.h>
 #include <asm/cacheflush.h>
+
 #ifdef CONFIG_ION_POOL_CACHE_POLICY
 #include <asm/cacheflush.h>
 #endif
 
 #include "ion.h"
+
+struct exynos_ion_platform_heap {
+	struct ion_platform_heap heap_data;
+	struct reserved_mem *rmem;
+	unsigned int id;
+	unsigned int compat_ids;
+	bool secure;
+	bool reusable;
+	bool protected;
+	bool noprot;
+	bool should_isolate;
+	atomic_t secure_ref;
+	struct device dev;
+	struct ion_heap *heap;
+};
 
 struct ion_buffer *ion_handle_buffer(struct ion_handle *handle);
 
@@ -589,23 +605,24 @@ typedef enum ion_event_type {
 	ION_EVENT_TYPE_CLEAR,
 } ion_event_t;
 
+#define ION_EVENT_HEAPNAME	8
 struct ion_event_alloc {
 	void *id;
-	struct ion_heap *heap;
+	unsigned char heapname[ION_EVENT_HEAPNAME];
 	size_t size;
 	unsigned long flags;
 };
 
 struct ion_event_free {
 	void *id;
-	struct ion_heap *heap;
+	unsigned char heapname[ION_EVENT_HEAPNAME];
 	size_t size;
 	bool shrinker;
 };
 
 struct ion_event_mmap {
 	void *id;
-	struct ion_heap *heap;
+	unsigned char heapname[ION_EVENT_HEAPNAME];
 	size_t size;
 };
 
@@ -615,7 +632,7 @@ struct ion_event_shrink {
 
 struct ion_event_clear {
 	void *id;
-	struct ion_heap *heap;
+	unsigned char heapname[ION_EVENT_HEAPNAME];
 	size_t size;
 	unsigned long flags;
 };
@@ -635,6 +652,10 @@ struct ion_eventlog {
 
 void ION_EVENT_SHRINK(struct ion_device *dev, size_t size);
 void ION_EVENT_CLEAR(struct ion_buffer *buffer, ktime_t begin);
+
+void show_ion_system_heap_size(struct seq_file *s);
+void show_ion_system_heap_pool_size(struct seq_file *s);
+
 #else
 #define ION_EVENT_BEGIN()		do { } while (0)
 #define ION_EVENT_DONE()		do { } while (0)

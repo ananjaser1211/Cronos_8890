@@ -30,6 +30,8 @@
 struct ion_cma_heap {
 	struct ion_heap heap;
 	struct device *dev;
+	unsigned int isolate_count;
+	struct mutex isolate_mutex;
 };
 
 #define to_cma_heap(x) container_of(x, struct ion_cma_heap, heap)
@@ -70,9 +72,13 @@ static int ion_cma_allocate(struct ion_heap *heap, struct ion_buffer *buffer,
 {
 	struct ion_cma_heap *cma_heap = to_cma_heap(heap);
 	struct device *dev = cma_heap->dev;
+	struct exynos_ion_platform_heap *pdata =
+			container_of(dev, struct exynos_ion_platform_heap, dev);
 	struct ion_cma_buffer_info *info;
 	struct page *page;
-	int ret;
+	bool is_protected = !!(buffer->flags & ION_FLAG_PROTECTED);
+	bool should_isolate = is_protected && pdata->should_isolate;
+	int ret = -ENOMEM;
 
 	dev_dbg(dev, "Request buffer allocation len %ld\n", len);
 
@@ -85,13 +91,30 @@ static int ion_cma_allocate(struct ion_heap *heap, struct ion_buffer *buffer,
 		return -ENOMEM;
 	}
 
+	mutex_lock(&cma_heap->isolate_mutex);
+	if (!is_protected && (cma_heap->isolate_count > 0)) {
+		mutex_unlock(&cma_heap->isolate_mutex);
+		dev_err(dev,
+			"unprotected alloc from protected pool unallowed\n");
+		ret = -EPERM;
+		goto err;
+	} else if (should_isolate && (++cma_heap->isolate_count == 1)) {
+		ret = dma_contiguous_isolate(dev);
+		if (ret < 0) {
+			cma_heap->isolate_count--;
+			mutex_unlock(&cma_heap->isolate_mutex);
+			goto err;
+		}
+	}
+	mutex_unlock(&cma_heap->isolate_mutex);
+
 	page = dma_alloc_from_contiguous(dev,
 			(PAGE_ALIGN(len) >> PAGE_SHIFT),
 			(align ? get_order(align) : 0));
 	if (!page) {
 		ret = -ENOMEM;
 		dev_err(dev, "Fail to allocate buffer\n");
-		goto err;
+		goto err_isolate;
 	}
 
 	info->handle = phys_to_dma(dev, page_to_phys(page));
@@ -114,7 +137,7 @@ static int ion_cma_allocate(struct ion_heap *heap, struct ion_buffer *buffer,
 	buffer->priv_virt = info;
 
 #ifdef CONFIG_ARM64
-	if (!ion_buffer_cached(buffer) && !(buffer->flags & ION_FLAG_PROTECTED)) {
+	if (!ion_buffer_cached(buffer) && !is_protected) {
 		if (ion_buffer_need_flush_all(buffer))
 			flush_all_cpu_caches();
 		else
@@ -122,7 +145,7 @@ static int ion_cma_allocate(struct ion_heap *heap, struct ion_buffer *buffer,
 									len);
 	}
 #else
-	if (!ion_buffer_cached(buffer) && !(buffer->flags & ION_FLAG_PROTECTED)) {
+	if (!ion_buffer_cached(buffer) && !is_protected) {
 		if (ion_buffer_need_flush_all(buffer)) {
 			flush_all_cpu_caches();
 		} else {
@@ -134,7 +157,7 @@ static int ion_cma_allocate(struct ion_heap *heap, struct ion_buffer *buffer,
 		}
 	}
 #endif
-	if (buffer->flags & ION_FLAG_PROTECTED) {
+	if (is_protected) {
 		ret = ion_secure_protect(buffer);
 		if (ret)
 			goto free_table;
@@ -148,6 +171,9 @@ free_table:
 free_mem:
 	dma_release_from_contiguous(dev, page,
 			(PAGE_ALIGN(len) >> PAGE_SHIFT));
+err_isolate:
+	if (should_isolate && (--cma_heap->isolate_count == 0))
+		dma_contiguous_deisolate(dev);
 err:
 	kfree(info);
 	ion_debug_heap_usage_show(heap);
@@ -158,12 +184,22 @@ static void ion_cma_free(struct ion_buffer *buffer)
 {
 	struct ion_cma_heap *cma_heap = to_cma_heap(buffer->heap);
 	struct device *dev = cma_heap->dev;
+	struct exynos_ion_platform_heap *pdata =
+			container_of(dev, struct exynos_ion_platform_heap, dev);
 	struct ion_cma_buffer_info *info = buffer->priv_virt;
+	bool is_protected = !!(buffer->flags & ION_FLAG_PROTECTED);
+	bool should_isolate = is_protected && pdata->should_isolate;
 
 	dev_dbg(dev, "Release buffer %p\n", buffer);
 
-	if (buffer->flags & ION_FLAG_PROTECTED)
+	if (is_protected)
 		ion_secure_unprotect(buffer);
+
+	mutex_lock(&cma_heap->isolate_mutex);
+	if (should_isolate && (--cma_heap->isolate_count == 0))
+		dma_contiguous_deisolate(dev);
+	BUG_ON(cma_heap->isolate_count < 0);
+	mutex_unlock(&cma_heap->isolate_mutex);
 
 	/* release memory */
 	dma_release_from_contiguous(dev,
@@ -256,6 +292,7 @@ struct ion_heap *ion_cma_heap_create(struct ion_platform_heap *data)
 	 * used to make the link with reserved CMA memory */
 	cma_heap->dev = data->priv;
 	cma_heap->heap.type = ION_HEAP_TYPE_DMA;
+	mutex_init(&cma_heap->isolate_mutex);
 	return &cma_heap->heap;
 }
 
