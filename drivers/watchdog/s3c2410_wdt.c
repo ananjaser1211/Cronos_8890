@@ -274,16 +274,10 @@ static int s3c2410wdt_keepalive(struct watchdog_device *wdd)
 {
 	struct s3c2410_wdt *wdt = watchdog_get_drvdata(wdd);
 	unsigned long flags;
-	unsigned long wtcon, wtdat, wtcnt;
 
 	spin_lock_irqsave(&wdt->lock, flags);
 	writel(wdt->count, wdt->reg_base + S3C2410_WTCNT);
-	wtcon = readl(wdt->reg_base + S3C2410_WTCON);
-	wtcnt= readl(wdt->reg_base + S3C2410_WTCNT);
-	wtdat= readl(wdt->reg_base + S3C2410_WTDAT);
 	spin_unlock_irqrestore(&wdt->lock, flags);
-	pr_info("%s: wtcnt=0x%08lx, wtdat=%08lx, wtcon=%08lx\n",
-	    __func__, wtcnt, wtdat, wtcon);
 
 	return 0;
 }
