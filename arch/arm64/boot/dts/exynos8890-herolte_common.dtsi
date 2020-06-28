@@ -3062,11 +3062,10 @@
 		boot_device@1 {
 			net_boost,label="IPC";
 			net_boost,node="rmnet0 rmnet1 rmnet2 rmnet3 rmnet4 rmnet5 rmnet6 rmnet7 umts_dm0";
-			net_boost,table_size = <4>;
+			net_boost,table_size = <3>;
 			net_boost,table= <
 				100 0 0 1066000 0 845000 0 0 1 0
-				150 0 0 1170000 0 1144000 0 0 1 0
-				200 0 0 1378000 0 1539000 0 0 1 0
+				200 0 0 1274000 0 1014000 0 0 1 0
 				300 0 0 1586000 0 1794000 0 0 1 0
 				>;
 		};
@@ -3087,7 +3086,7 @@
 			net_boost,table_size = <2>;
 			net_boost,table= <
 				128 0 0 1274000 0 1144000 0 0 0 0
-				800 1140000 0 0 0 1539000 0 0 0 1
+				800 0 0 1482000 0 1539000 0 0 0 0
 				>;
 #else
 			net_boost,table_size = <1>;
@@ -3102,10 +3101,11 @@
 			net_boost,table_size = <3>;
 			net_boost,table= <
 				30 1144000 0 1170000 0 0 0 0 0 0
-				90 1872000 0 1586000 0 546000 255000 0 0 1
-				180 2080000 0 1586000 0 845000 400000 1 1 1
+				90 1872000 0 1586000 0 0 255000 0 0 0
+				120 2080000 0 1586000 0 546000 255000 0 0 1
 				>;
 		};
+
 		boot_device@4 {
 			net_boost,label="CLAT";
 			net_boost,node="clat clat4 v4-rmnet0 v4-rmnet1 v4-rmnet2 v4-rmnet3 v4-rmnet4 v4-rmnet5 v4-rmnet6 v4-rmnet7";
@@ -3134,7 +3134,8 @@
 			net_boost,table_size = <1>;
 			net_boost,table= < 0 0 0 0 0 0 0 0 1 0 >;
 		};
-	        boot_device@7 {
+
+		boot_device@7 {
 			net_boost,label="WIFI";
 			net_boost,node="wlan0";
 			net_boost,table_size = <1>;
@@ -3147,10 +3148,10 @@
 			net_boost,node="wlan0";
 			net_boost,table_size = <4>;
 			net_boost,table= <
-				60 1664000 0 1586000 0 0 0 0 0 0
-				150 1664000 0 1586000 0 0 0 0 0 0
-				200 1872000 0 1586000 0 845000 400000 1 1 1
-				300 2288000 0 1586000 0 845000 400000 1 1 1
+				40 1664000 0 1586000 0 0 0 0 0 0
+				80 1976000 0 1586000 0 0 0 0 0 0
+				150 2184000 0 1586000 0 845000 400000 1 1 1
+				250 2288000 0 1586000 0 845000 400000 1 1 1
 				>;
 		};
 		boot_device@9 {
@@ -3164,7 +3165,7 @@
 				300 2288000 0 1586000 0 845000 400000 1 1 1
 				>;
 		};
-        	boot_device@10 {
+		boot_device@10 {
 			net_boost,label="SWLAN";
 			net_boost,node="swlan0";
 			net_boost,table_size = <3>;
