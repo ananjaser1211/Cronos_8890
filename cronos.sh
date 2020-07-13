@@ -31,7 +31,6 @@ CR_PRODUCT=$CR_DIR/Cronos/Product
 CR_AIK=$CR_DIR/Cronos/A.I.K
 # Main Ramdisk Location
 CR_RAMDISK=$CR_DIR/Cronos/Ramdisk
-CR_RAMDISK_TREBLE=$CR_DIR/Cronos/Treble
 CR_RAMDISK_Q=$CR_DIR/Cronos/Q
 # Compiled image name and location (Image/zImage)
 CR_KERNEL=$CR_DIR/arch/arm64/boot/Image
@@ -305,14 +304,14 @@ do
               CR_CONFIG_TYPE=$CR_CONFIG_TREBLE_ONEUI
               CR_VARIANT=$CR_VARIANT_G930-TrebleTW
               CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_Q
             fi
             if [ $CR_MODE = "2" ]; then
               echo " Building AOSP-Treble variant "
               CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
               CR_VARIANT=$CR_VARIANT_G930-Treble
               CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_Q
             fi
             if [ $CR_MODE = "3" ]; then
               echo " Building OneUI variant "
@@ -348,14 +347,14 @@ do
               CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
               CR_VARIANT=$CR_VARIANT_G935-TrebleTW
               CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_Q
             fi
             if [ $CR_MODE = "2" ]; then
               echo " Building AOSP-Treble variant "
               CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
               CR_VARIANT=$CR_VARIANT_G935-Treble
               CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_Q
             fi
             if [ $CR_MODE = "3" ]; then
               echo " Building OneUI variant "
@@ -391,14 +390,14 @@ do
               CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
               CR_VARIANT=$CR_VARIANT_N935-TrebleTW
               CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_Q
             fi
             if [ $CR_MODE = "2" ]; then
               echo " Building AOSP-Treble variant "
               CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
               CR_VARIANT=$CR_VARIANT_N935-Treble
               CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_TREBLE
+              CR_RAMDISK=$CR_RAMDISK_Q
             fi
             if [ $CR_MODE = "3" ]; then
               echo " Building OneUI variant "
