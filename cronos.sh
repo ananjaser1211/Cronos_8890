@@ -301,7 +301,7 @@ do
             echo "Starting $CR_VARIANT_G930 kernel build..."
             if [ $CR_MODE = "1" ]; then
               echo " Building Oneui-Treble variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE_ONEUI
+              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
               CR_VARIANT=$CR_VARIANT_G930-TrebleTW
               CR_DTB_MOUNT=$CR_DTS_TREBLE
               CR_RAMDISK=$CR_RAMDISK_Q
