@@ -198,6 +198,11 @@ BUILD_GENERATE_CONFIG()
     echo " Inverting HALL_IC Status"
     echo "CONFIG_HALL_EVENT_REVERSE=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   fi
+  if [ $CR_BOMB = "1" ]; then
+    echo " Legacy BOMB Edition RIL"
+	sed -i -- '/CONFIG_MODEM_PIE_REV/d' $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+    echo "# CONFIG_MODEM_PIE_REV is not set" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  fi
   echo " Set $CR_VARIANT to generated config "
   CR_CONFIG=tmp_defconfig
 }
@@ -384,6 +389,14 @@ do
             ;;
         "SM-N935X")
             clear
+			read -p "Bomb edition? (y/n) > " yn
+			if [ "$yn" = "Y" -o "$yn" = "y" ]; then
+				echo " Building Bomb Edition "
+				CR_BOMB="1"
+				CR_VARIANT_N935=N930X
+			else
+				echo " Building Fan Edition Edition "
+            fi
             echo "Starting $CR_VARIANT_N935 kernel build..."
             if [ $CR_MODE = "1" ]; then
               echo " Building Oneui-Treble variant "
