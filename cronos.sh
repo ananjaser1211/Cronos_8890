@@ -76,6 +76,7 @@ CR_CONFIG_CRONOS=cronos_defconfig
 CR_ROOT="0"
 CR_PERMISSIVE="0"
 CR_HALLIC="0"
+CR_BOMB="0"
 #####################################################
 
 # Script functions
