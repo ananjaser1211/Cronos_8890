@@ -63,7 +63,7 @@
 extern int sec_therm_get_ap_temperature(void);
 #endif
 
-#ifdef CONFIG_SCHED_HMP
+#if 0
 extern int set_hmp_boost(int enable);
 #endif
 
@@ -159,7 +159,7 @@ void gpu_destroy_context(void *ctx)
 	kctx->ctx_status = CTX_DESTROYED;
 
 	if (kctx->ctx_need_qos) {
-#ifdef CONFIG_SCHED_HMP
+#if 0
 		int i, policy_count;
 		const struct kbase_pm_policy *const *policy_list;
 		struct exynos_context *platform;
@@ -168,7 +168,7 @@ void gpu_destroy_context(void *ctx)
 #ifdef CONFIG_MALI_DVFS
 		gpu_dvfs_boost_lock(GPU_DVFS_BOOST_UNSET);
 #endif
-#ifdef CONFIG_SCHED_HMP
+#if 0
 		/* set policy back */
 		policy_count = kbase_pm_list_policies(&policy_list);
 		if (platform->cur_policy){
@@ -248,14 +248,14 @@ int gpu_vendor_dispatch(struct kbase_context *kctx, u32 flags)
 #if defined(CONFIG_MALI_DVFS) || defined(CONFIG_SCHED_HMP)
 			struct exynos_context *platform;
 #endif
-#ifdef CONFIG_SCHED_HMP
+#if 0
 			int i, policy_count;
 			const struct kbase_pm_policy *const *policy_list;
 			platform = (struct exynos_context *) kbdev->platform_context;
 #endif /* CONFIG_SCHED_HMP */
 			if (!kctx->ctx_need_qos) {
 				kctx->ctx_need_qos = true;
-#ifdef CONFIG_SCHED_HMP
+#if 0
 				/* set policy to always_on */
 				policy_count = kbase_pm_list_policies(&policy_list);
 				platform->cur_policy = kbase_pm_get_policy(kbdev);
@@ -283,14 +283,14 @@ int gpu_vendor_dispatch(struct kbase_context *kctx, u32 flags)
 #if defined(CONFIG_MALI_DVFS) || defined(CONFIG_SCHED_HMP)
 			struct exynos_context *platform;
 #endif
-#ifdef CONFIG_SCHED_HMP
+#if 0
 			int i, policy_count;
 			const struct kbase_pm_policy *const *policy_list;
 			platform = (struct exynos_context *) kbdev->platform_context;
 #endif /* CONFIG_SCHED_HMP */
 			if (kctx->ctx_need_qos) {
 				kctx->ctx_need_qos = false;
-#ifdef CONFIG_SCHED_HMP
+#if 0
 				/* set policy back */
 				if (platform->cur_policy) {
 					policy_count = kbase_pm_list_policies(&policy_list);
