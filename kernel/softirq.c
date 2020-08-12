@@ -270,9 +270,13 @@ restart:
 
 		trace_softirq_entry(vec_nr);
 		exynos_ss_irq(ESS_FLAG_SOFTIRQ, h->action, vec_nr, ESS_FLAG_IN);
+		#if defined(CONFIG_LOCKUP_DETECTOR)
 		sl_softirq_entry(softirq_to_name[vec_nr], h->action);
+		#endif
 		h->action(h);
+		#if defined(CONFIG_LOCKUP_DETECTOR)
 		sl_softirq_exit();
+		#endif
 		exynos_ss_irq(ESS_FLAG_SOFTIRQ, h->action, local_softirq_pending(), ESS_FLAG_OUT);
 		trace_softirq_exit(vec_nr);
 		if (unlikely(prev_count != preempt_count())) {
@@ -507,9 +511,13 @@ static void tasklet_action(struct softirq_action *a)
 					BUG();
 				exynos_ss_irq(ESS_FLAG_SOFTIRQ_TASKLET,
 						t->func, t->state, ESS_FLAG_IN);
+				#if defined(CONFIG_LOCKUP_DETECTOR)
 				sl_softirq_entry(softirq_to_name[TASKLET_SOFTIRQ], t->func);
+				#endif
 				t->func(t->data);
+				#if defined(CONFIG_LOCKUP_DETECTOR)
 				sl_softirq_exit();
+				#endif
 				exynos_ss_irq(ESS_FLAG_SOFTIRQ_TASKLET,
 						t->func, local_softirq_pending(), ESS_FLAG_OUT);
 				tasklet_unlock(t);
@@ -549,9 +557,13 @@ static void tasklet_hi_action(struct softirq_action *a)
 					BUG();
 				exynos_ss_irq(ESS_FLAG_SOFTIRQ_HI_TASKLET,
 						t->func, t->state, ESS_FLAG_IN);
+				#if defined(CONFIG_LOCKUP_DETECTOR)
 				sl_softirq_entry(softirq_to_name[HI_SOFTIRQ], t->func);
+				#endif
 				t->func(t->data);
+				#if defined(CONFIG_LOCKUP_DETECTOR)
 				sl_softirq_exit();
+				#endif
 				exynos_ss_irq(ESS_FLAG_SOFTIRQ_HI_TASKLET,
 						t->func, local_softirq_pending(), ESS_FLAG_OUT);
 				tasklet_unlock(t);

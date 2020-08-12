@@ -882,7 +882,7 @@ void __init lockup_detector_init(void)
 		watchdog_enable_all_cpus(false);
 }
 
-#ifdef CONFIG_SEC_DEBUG
+#ifdef CONFIG_SEC_DEBUG && CONFIG_LOCKUP_DETECTOR
 void sl_softirq_entry(const char *softirq_type, void *fn)
 {
 	struct softlockup_info *sl_info = per_cpu_ptr(&percpu_sl_info, smp_processor_id());
@@ -903,6 +903,7 @@ void sl_softirq_exit(void)
 	sl_info->softirq_info.fn = (void *)0;
 	sl_info->softirq_info.softirq_type[0] = '\0';
 }
+#endif
 
 void check_softlockup_type(void)
 {
