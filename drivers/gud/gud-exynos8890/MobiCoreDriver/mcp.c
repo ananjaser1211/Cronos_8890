@@ -143,9 +143,9 @@ static struct mcp_context {
 	struct mutex		last_mcp_cmds_mutex; /* Log protection */
 	struct mcp_command_info {
 		u64			cpu_clk;	/* Kernel time */
-		pid_t			pid;		/* Caller PID */
-		enum cmd_id		id;		/* MCP command ID */
-		u32			session_id;
+		pid_t		pid;	/* Caller PID */
+		enum cmd_id	id;	/* MCP command ID */
+		u32		session_id;
 		char			uuid_str[34];
 		enum state {
 			UNUSED,		/* Unused slot */
@@ -153,11 +153,11 @@ static struct mcp_context {
 			SENT,		/* Waiting for response */
 			COMPLETE,	/* Got result */
 			FAILED,		/* Something went wrong */
-		}			state;	/* Command processing state */
-		enum mcp_result		result;	/* Command result */
-		int			errno;	/* Return code */
-	}				last_mcp_cmds[MCP_LOG_SIZE];
-	int				last_mcp_cmds_index;
+		}		state;	/* Command processing state */
+		enum mcp_result	result;	/* Command result */
+		int		errno;	/* Return code */
+	}			last_mcp_cmds[MCP_LOG_SIZE];
+	int			last_mcp_cmds_index;
 } mcp_ctx;
 
 static const char *mcp_cmd_to_string(enum cmd_id id)
@@ -396,8 +396,8 @@ end:
 		if (ret == -ERESTARTSYS && system_freezing_cnt.counter == 1)
 			mc_dev_devel("freezing session %x\n", session->id);
 		else
-			mc_dev_info("session %x ec %d ret %d\n",
-				    session->id, session->exit_code, ret);
+		mc_dev_info("session %x ec %d ret %d\n",
+			    session->id, session->exit_code, ret);
 	}
 
 	return ret;
@@ -499,15 +499,14 @@ static inline int wait_mcp_notification(void)
 		/* If SWd halted, exit now */
 		if (!mc_fc_info(MC_EXT_INFO_ID_MCI_VERSION, &status, NULL) &&
 		    (status == MC_STATUS_HALT))
-			break;
+					break;
 	}
 
 	/* TEE halted or dead: dump status and SMC log */
-//	mark_mcp_dead();
+	//mark_mcp_dead();
 	mcp_dump_mobicore_status();
 
 	panic("tbase halt");
-
 	return -ETIME;
 }
 
@@ -826,6 +825,7 @@ int mcp_close_session(struct mcp_session *session)
 		/* Something is not right, assume session is still running */
 		session->state = MCP_SESSION_CLOSE_FAILED;
 	}
+
 	mutex_unlock(&mcp_ctx.sessions_lock);
 	mc_dev_devel("close session %x ret %d state %d", session->id, ret,
 		     session->state);
@@ -1115,9 +1115,9 @@ static int irq_bh_worker(void *arg)
 	while (mcp_ctx.irq_bh_active) {
 		wait_for_completion(&mcp_ctx.irq_bh_complete);
 
-		/* Deal with all pending notifications in one go */
-		while ((rx->hdr.write_cnt - rx->hdr.read_cnt) > 0) {
-			struct notification nf;
+	/* Deal with all pending notifications in one go */
+	while ((rx->hdr.write_cnt - rx->hdr.read_cnt) > 0) {
+		struct notification nf;
 
 			nf = rx->notification[
 				rx->hdr.read_cnt % rx->hdr.queue_size];
@@ -1126,19 +1126,19 @@ static int irq_bh_worker(void *arg)
 			 * Ensure read_cnt writing happens after buffer read
 			 * We want a ARM dmb() / ARM64 dmb(sy) here
 			 */
-			smp_mb();
-			rx->hdr.read_cnt++;
+		smp_mb();
+		rx->hdr.read_cnt++;
 			/*
 			 * Ensure read_cnt writing finishes before reader
 			 * We want a ARM dsb() / ARM64 dsb(sy) here
 			 */
-			rmb();
+		rmb();
 
-			if (nf.session_id == SID_MCP)
-				handle_mcp_notif(nf.payload);
-			else
-				handle_session_notif(nf.session_id, nf.payload);
-		}
+		if (nf.session_id == SID_MCP)
+			handle_mcp_notif(nf.payload);
+		else
+			handle_session_notif(nf.session_id, nf.payload);
+	}
 
 		/*
 		 * Finished processing notifications. It does not matter whether

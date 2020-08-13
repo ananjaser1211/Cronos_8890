@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 TRUSTONIC LIMITED
+ * Copyright (c) 2013-2017 TRUSTONIC LIMITED
  * All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or
@@ -45,7 +45,6 @@
 #if !defined(CONFIG_SOC_EXYNOS3472)
 
 #define TBASE_CORE_SWITCHER
-
 #if defined(CONFIG_SOC_EXYNOS3250)
 #define COUNT_OF_CPUS 2
 #elif defined(CONFIG_SOC_EXYNOS3475)
@@ -61,6 +60,7 @@
 #define CPU_IDS {0x0000, 0x0001, 0x0002, 0x0003, 0x0100, 0x0101, 0x0102, 0x0103}
 #else
 #define CPU_IDS {0x0100, 0x0101, 0x0102, 0x0103, 0x0000, 0x0001, 0x0002, 0x0003}
+
 #endif
 
 #endif /* !CONFIG_SOC_EXYNOS3472 */
@@ -86,9 +86,9 @@
 #define DEFAULT_LITTLE_CORE		0
 #define NONBOOT_LITTLE_CORE		1
 #define DEFAULT_BIG_CORE		4
-#define MIGRATE_TARGET_CORE     DEFAULT_BIG_CORE
+#define MIGRATE_TARGET_CORE		3
 
-#define MC_INTR_LOCAL_TIMER            (IRQ_SPI(85) + DEFAULT_BIG_CORE)
+#define MC_INTR_LOCAL_TIMER            (IRQ_SPI(106) + MIGRATE_TARGET_CORE)
 
 #define LOCAL_TIMER_PERIOD             50
 

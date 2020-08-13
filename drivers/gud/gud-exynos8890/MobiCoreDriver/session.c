@@ -518,7 +518,7 @@ int session_close(struct tee_session *session)
 		 * GP TAs need time to close. The "TA closed" notification shall
 		 * trigger the session_close_worker which will unblock us
 		 */
-		mc_dev_devel("wait for session %x worker",
+		 mc_dev_devel("wait for session %x worker",
 			     session->mcp_session.id);
 		wait_for_completion(&session->close_completion);
 		break;
@@ -527,19 +527,19 @@ int session_close(struct tee_session *session)
 			   session->mcp_session.id);
 		ret = -EPERM;
 	}
+
 	mutex_unlock(&session->close_lock);
-
 	if (ret)
-		return ret;
+			return ret;
 
-	mc_dev_devel("closed session %x", session->mcp_session.id);
-	/* Remove session from client's closing list */
-	mutex_lock(&session->client->sessions_lock);
-	list_del(&session->list);
-	mutex_unlock(&session->client->sessions_lock);
+		mc_dev_devel("closed session %x", session->mcp_session.id);
+		/* Remove session from client's closing list */
+		mutex_lock(&session->client->sessions_lock);
+		list_del(&session->list);
+		mutex_unlock(&session->client->sessions_lock);
 
-	/* Remove the ref we took on creation */
-	session_put(session);
+		/* Remove the ref we took on creation */
+		session_put(session);
 	return ret;
 }
 

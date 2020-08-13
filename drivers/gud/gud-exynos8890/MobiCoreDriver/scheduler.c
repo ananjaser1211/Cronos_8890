@@ -139,9 +139,9 @@ static int tee_scheduler(void *arg)
 				if (!wait_for_completion_timeout(
 					&sched_ctx.idle_complete,
 					msecs_to_jiffies(timeout_ms))) {
-					/* Timed out, force SWd schedule */
-					mc_scheduler_command(NSIQ);
-				}
+				/* Timed out, force SWd schedule */
+				mc_scheduler_command(NSIQ);
+		}
 			}
 		}
 
@@ -213,9 +213,6 @@ int mc_scheduler_start(void)
 		mc_dev_err("tee_scheduler thread creation failed\n");
 		return PTR_ERR(sched_ctx.thread);
 	}
-
-	/* ExySp: set affinity to little */
-	set_cpus_allowed_ptr(sched_ctx.thread, &hmp_slow_cpu_mask);
 
 	mcp_register_scheduler(mc_dev_command);
 	complete(&sched_ctx.idle_complete);

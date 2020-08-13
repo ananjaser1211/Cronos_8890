@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 TRUSTONIC LIMITED
+ * Copyright (c) 2013-2017 TRUSTONIC LIMITED
  * All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or
@@ -87,6 +87,9 @@ static inline long gup_local(struct mm_struct *mm, uintptr_t start,
 	if (write)
 		flags |= FOLL_WRITE;
 
+	/* ExySp */
+	flags |= FOLL_CMA;
+
 	return get_user_pages_remote(NULL, mm, start, nr_pages, write, 0, pages,
 				     NULL);
 }
@@ -100,6 +103,9 @@ static inline long gup_local(struct mm_struct *mm, uintptr_t start,
 	if (write)
 		flags |= FOLL_WRITE;
 
+	/* ExySp */
+	flags |= FOLL_CMA;
+
 	return get_user_pages_remote(NULL, mm, start, nr_pages, flags, pages,
 				     NULL);
 }
@@ -112,6 +118,9 @@ static inline long gup_local(struct mm_struct *mm, uintptr_t start,
 
 	if (write)
 		flags |= FOLL_WRITE;
+
+	/* ExySp */
+	flags |= FOLL_CMA;
 
 	return get_user_pages_remote(NULL, mm, start, nr_pages, flags, pages,
 				     NULL, NULL);

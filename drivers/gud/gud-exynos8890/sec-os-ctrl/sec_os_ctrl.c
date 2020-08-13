@@ -64,6 +64,10 @@ static ssize_t migrate_os_store(struct kobject *kobj,
 			return count;
 		}
 	}
+	
+	if(new_core == 4)
+		new_core = 3;
+
 	pr_info("Secure OS will be migrated into core [%d]\n", new_core);
 
 	if (mutex_lock_interruptible(&sec_os_ctrl_lock)) {

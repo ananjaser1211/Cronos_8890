@@ -59,7 +59,7 @@ struct timer_work {
 	struct kthread_work work;
 };
 
-static struct pm_qos_request secos_booster_cluster1_qos;
+static struct pm_qos_request secos_booster_cluster0_qos;
 static struct hrtimer timer;
 static int max_cpu_freq;
 
@@ -200,7 +200,7 @@ int secos_booster_start(enum secos_boost_policy policy)
 		freq = max_cpu_freq;
 	else
 		freq = 0;
-
+	
 
 	if (!cpu_online(MIGRATE_TARGET_CORE)) {
 		pr_debug("%s: %d core is offline\n", __func__, MIGRATE_TARGET_CORE);
@@ -213,15 +213,15 @@ int secos_booster_start(enum secos_boost_policy policy)
 		pr_debug("%s: %d core is online\n", __func__, MIGRATE_TARGET_CORE);
 	}
 
-	if (secos_booster_request_pm_qos(&secos_booster_cluster1_qos, freq)) { /* KHz */
+	if (secos_booster_request_pm_qos(&secos_booster_cluster0_qos, freq)) { /* KHz */
 		ret = -EPERM;
 		goto error;
 	}
-
+	
 	ret = mc_switch_core(MIGRATE_TARGET_CORE);
 	if (ret) {
 		pr_err("%s: mc switch failed : err:%d\n", __func__, ret);
-		secos_booster_request_pm_qos(&secos_booster_cluster1_qos, 0);
+		secos_booster_request_pm_qos(&secos_booster_cluster0_qos, 0);
 		ret = -EPERM;
 		goto error;
 	}
@@ -229,7 +229,7 @@ int secos_booster_start(enum secos_boost_policy policy)
 	if (boost_policy == STB_PERFORMANCE) {
 		/* Restore origin performance policy after spend default boost time */
 		if (boost_time == 0)
-			boost_time = DEFAULT_SECOS_BOOST_TIME;
+			boost_time = DEFAULT_SECOS_BOOST_TIME;		
 
 		hrtimer_cancel(&timer);
 		hrtimer_start(&timer, ns_to_ktime((u64)boost_time * NSEC_PER_MSEC),
@@ -266,7 +266,7 @@ int secos_booster_stop(void)
 		if (ret)
 			pr_err("%s: mc switch core failed. err:%d\n", __func__, ret);
 
-		secos_booster_request_pm_qos(&secos_booster_cluster1_qos, 0);
+		secos_booster_request_pm_qos(&secos_booster_cluster0_qos, 0);
 	} else {
 		/* mismatched usage count */
 		pr_warn("boost usage count sync mismatched. count : %d\n", mc_boost_usage_count);
@@ -316,7 +316,7 @@ static int __init secos_booster_init(void)
 
 	max_cpu_freq = cpufreq_quick_get_max(MIGRATE_TARGET_CORE);
 
-	pm_qos_add_request(&secos_booster_cluster1_qos, PM_QOS_CLUSTER1_FREQ_MIN, 0);
+	pm_qos_add_request(&secos_booster_cluster0_qos, PM_QOS_CLUSTER0_FREQ_MIN, 0);
 
 	register_pm_notifier(&secos_booster_pm_notifier_block);
 
