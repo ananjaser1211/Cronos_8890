@@ -1,8 +1,8 @@
 run_program("/sbin/busybox", "mount", "/system");
 run_program("/sbin/busybox", "mount", "/data");
 ui_print("***********************");
-ui_print("* CronosKernel V4.0");
-ui_print("* For Galaxy G930X/G935X");
+ui_print("* CronosKernel V5.5");
+ui_print("* For Galaxy G930X/G935X And N93X");
 ui_print("* Android 9.0 - OneUI Pie");
 ui_print("* By AnanJaser1211 @Xda");
 ui_print("***********************");
@@ -23,6 +23,14 @@ endif;
 if is_substring("G935", getprop("ro.boot.bootloader")) then
     ui_print("-- Galaxy S7 Edge detected, extracting files...");
     package_extract_file("Cronos/device/hero2lte/boot.img", "/dev/block/platform/155a0000.ufs/by-name/BOOT");
+endif;
+if is_substring("N930", getprop("ro.boot.bootloader")) then
+    ui_print("-- Galaxy Note 7 Bomb Edition detected, extracting files...");
+    package_extract_file("Cronos/device/grace/boot.img", "/dev/block/platform/155a0000.ufs/by-name/BOOT");
+endif;
+if is_substring("N935", getprop("ro.boot.bootloader")) then
+    ui_print("-- Galaxy Note 7 Fan Edition detected, extracting files...");
+    package_extract_file("Cronos/device/gracer/boot.img", "/dev/block/platform/155a0000.ufs/by-name/BOOT");
 endif;
 ui_print("-- Extracting System Files...");
 package_extract_dir("Cronos/system", "/system");
