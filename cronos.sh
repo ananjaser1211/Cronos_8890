@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Cronos Build Script V4.1
+# Cronos Build Script V6.0
 # For Exynos8890
-# Coded by AnanJaser1211 @2019
+# Coded by AnanJaser1211 @ 2019-2020
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -18,8 +18,6 @@
 
 # Main Dir
 CR_DIR=$(pwd)
-# Define toolchan path
-CR_TC=~/Android/Toolchains/aarch64-linux-android-4.9/bin/aarch64-linux-android-
 # Define proper arch and dir for dts files
 CR_DTS=arch/arm64/boot/dts
 CR_DTS_TREBLE=arch/arm64/boot/exynos8890_Treble.dtsi
@@ -48,8 +46,6 @@ CR_PLATFORM=9.0.0
 CR_ARCH=arm64
 # Current Date
 CR_DATE=$(date +%Y%m%d)
-# Init build
-export CROSS_COMPILE=$CR_TC
 # General init
 export ANDROID_MAJOR_VERSION=$CR_ANDROID
 export PLATFORM_VERSION=$CR_PLATFORM
@@ -67,67 +63,50 @@ CR_VARIANT_G935=G935X
 CR_DTSFILES_N935="exynos8890-gracelte_eur_open_00.dtb exynos8890-gracelte_eur_open_01.dtb exynos8890-gracelte_eur_open_02.dtb exynos8890-gracelte_eur_open_03.dtb exynos8890-gracelte_eur_open_05.dtb exynos8890-gracelte_eur_open_07.dtb exynos8890-gracelte_eur_open_09.dtb exynos8890-gracelte_eur_open_11.dtb"
 CR_CONFIG_N935=gracer_defconfig
 CR_VARIANT_N935=N935X
-# Common configs
+CR_VARIANT_N930=N930X
+# Split Defconfigs
 CR_CONFIG_TREBLE=treble_defconfig
 CR_CONFIG_ONEUI=oneui_defconfig
 CR_CONFIG_8890=exynos8890_defconfig
 CR_CONFIG_SPLIT=NULL
 CR_CONFIG_CRONOS=cronos_defconfig
+# Default Config status
 CR_ROOT="0"
 CR_PERMISSIVE="0"
 CR_HALLIC="0"
 CR_BOMB="0"
+# Compiler Paths
+CR_TC=~/Android/Toolchains/aarch64-linux-gnu-11.x/bin/aarch64-linux-gnu-
+CR_CLANG=~/Android/Toolchains/clang-r399163/bin
+CR_GCC=~/Android/Toolchains/aarch64-linux-android-4.9/bin/aarch64-linux-android-
 #####################################################
 
-# Script functions
+# Compiler Selection
+BUILD_COMPILER()
+{
+if [ $CR_COMPILER = "1" ]; then
+export CROSS_COMPILE=$CR_GCC
+compile="make"
+CR_COMPILER="$CR_GCC"
+fi
+if [ $CR_COMPILER = "2" ]; then
+export CLANG_PATH=$CR_CLANG
+export CROSS_COMPILE=$CR_TC
+export CLANG_TRIPLE=aarch64-linux-gnu-
+compile="make CC=clang ARCH=arm64"
+export PATH=${CLANG_PATH}:${PATH}
+CR_COMPILER="$CR_CLANG"
+fi
+}
 
-read -p "Clean source (y/n) > " yn
-if [ "$yn" = "Y" -o "$yn" = "y" ]; then
-     echo "Clean Build"
-     CR_CLEAN="1"
-else
-     echo "Dirty Build"
-     CR_CLEAN="0"
-fi
-
-# Treble / OneUI
-read -p "Variant? (1 (OneUI-Treble) | 2 (AOSP-Treble) | 3 (OneUI) | 4 (OneUI Q) > " aud
-if [ "$aud" = "1" ]; then
-     echo "Build OneUI-Treble Variant"
-     CR_MODE="1"
-     CR_PERMISSIVE="1"
-fi
-if [ "$aud" = "2" ]; then
-     echo "Build AOSP-Treble Variant"
-     CR_MODE="2"
-     CR_PERMISSIVE="1"
-fi
-if [ "$aud" = "3" ]; then
-     echo "Build OneUI Variant"
-     CR_MODE="3"
-     CR_PERMISSIVE="1"
-fi
-if [ "$aud" = "4" ]; then
-     echo "Build OneUI Q Variant"
-     CR_MODE="4"
-     CR_PERMISSIVE="1"
-     CR_HALLIC="1"
-fi
-
-# Got Root?
-#read -p "Kernel SU? (y/n) > " yn
-#if [ "$yn" = "Y" -o "$yn" = "y" ]; then
-#     echo " WARNING : KernelSU Enabled!"
-#     export CONFIG_ASSISTED_SUPERUSER=y
-#     CR_ROOT="1"
-#fi
+# Clean-up Function
 
 BUILD_CLEAN()
 {
-if [ $CR_CLEAN = 1 ]; then
+if [ $CR_CLEAN = "y" ]; then
      echo " "
      echo " Cleaning build dir"
-     make clean && make mrproper
+     $compile clean && $compile mrproper
      rm -r -f $CR_DTB
      rm -rf $CR_DTS/.*.tmp
      rm -rf $CR_DTS/.*.cmd
@@ -137,7 +116,7 @@ if [ $CR_CLEAN = 1 ]; then
      rm -rf $CR_OUT/*.img
      rm -rf $CR_OUT/*.zip
 fi
-if [ $CR_CLEAN = 0 ]; then
+if [ $CR_CLEAN = "n" ]; then
      echo " "
      echo " Skip Full cleaning"
      rm -r -f $CR_DTB
@@ -145,31 +124,26 @@ if [ $CR_CLEAN = 0 ]; then
      rm -rf $CR_DTS/.*.cmd
      rm -rf $CR_DTS/*.dtb
      rm -rf $CR_DIR/.config
+     rm -rf $CR_DIR/.version
      rm -rf $CR_DTS/exynos8890.dtsi
 fi
 }
 
-BUILD_ROOT()
-{
-if [ $CR_ROOT = 1 ]; then
-     echo " "
-     echo " WARNING : KernelSU Enabled!"
-     mv $CR_PRODUCT/$CR_IMAGE_NAME.img $CR_PRODUCT/$CR_IMAGE_NAME-KernelSU.img
-     CR_IMAGE_NAME=$CR_IMAGE_NAME-KernelSU
-fi
-}
+
+# Kernel Name Function
 
 BUILD_IMAGE_NAME()
 {
 	CR_IMAGE_NAME=$CR_NAME-$CR_VERSION-$CR_VARIANT-$CR_DATE
 }
 
+# Config Generation Function
+
 BUILD_GENERATE_CONFIG()
 {
   # Only use for devices that are unified with 2 or more configs
   echo "----------------------------------------------"
-	echo " "
-	echo "Building defconfig for $CR_VARIANT"
+  echo "Building defconfig for $CR_VARIANT"
   echo " "
   # Respect CLEAN build rules
   BUILD_CLEAN
@@ -179,26 +153,30 @@ BUILD_GENERATE_CONFIG()
   fi
   echo " Copy $CR_CONFIG "
   cp -f $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  # Split-config support for devices with unified defconfigs (Universal + device)
   if [ $CR_CONFIG_SPLIT = NULL ]; then
     echo " No split config support! "
   else
     echo " Copy $CR_CONFIG_SPLIT "
     cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_SPLIT >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   fi
-  if [ $CR_MODE != "NULL" ]; then
-    echo " Copy $CR_CONFIG_TYPE "
-    cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_TYPE >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
-  fi
+  # Variant Specific configs (Treble, OneUI ...)
+  echo " Copy $CR_CONFIG_VAR "
+  cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_VAR >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  # CronosKernel Custom defconfig
   echo " Copy $CR_CONFIG_CRONOS "
   cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_CRONOS >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  # Selinux Never Enforce all targets
   if [ $CR_PERMISSIVE = "1" ]; then
     echo " Building Permissive Kernel"
     echo "CONFIG_ALWAYS_PERMISSIVE=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   fi
+  # Invert HALIC Readout when targeting OneUI Q
   if [ $CR_HALLIC = "1" ]; then
     echo " Inverting HALL_IC Status"
     echo "CONFIG_HALL_EVENT_REVERSE=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   fi
+  # Legacy modem required when targeting the original Note 7
   if [ $CR_BOMB = "1" ]; then
     echo " Legacy BOMB Edition RIL"
 	sed -i -- '/CONFIG_MODEM_PIE_REV/d' $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
@@ -208,6 +186,7 @@ BUILD_GENERATE_CONFIG()
   CR_CONFIG=tmp_defconfig
 }
 
+# Kernel information Function
 BUILD_OUT()
 {
   echo " "
@@ -221,6 +200,7 @@ BUILD_OUT()
   echo "----------------------------------------------"
 }
 
+# Kernel Compile Function
 BUILD_ZIMAGE()
 {
 	echo "----------------------------------------------"
@@ -229,8 +209,9 @@ BUILD_ZIMAGE()
 	export LOCALVERSION=-$CR_IMAGE_NAME
   	cp $CR_DTB_MOUNT $CR_DTS/exynos8890.dtsi
 	echo "Make $CR_CONFIG"
-	make $CR_CONFIG
-	make -j$CR_JOBS
+	$compile $CR_CONFIG
+	echo "Make Kernel with $CR_COMPILER"
+	$compile -j$CR_JOBS
 	if [ ! -e $CR_KERNEL ]; then
 	exit 0;
 	echo "Image Failed to Compile"
@@ -242,6 +223,8 @@ BUILD_ZIMAGE()
 	echo " "
 	echo "----------------------------------------------"
 }
+
+# Device-Tree compile Function
 BUILD_DTB()
 {
 	echo "----------------------------------------------"
@@ -249,12 +232,14 @@ BUILD_DTB()
 	echo "Building DTB for $CR_VARIANT"
 	# Use the DTS list provided in the build script.
 	# This source does not compile dtbs while doing Image
-	make $CR_DTSFILES
+	$compile $CR_DTSFILES
 	./tools/dtbTool/dtbTool -o $CR_DTB -d $CR_DTS/ -s 2048
 	if [ ! -e $CR_DTB ]; then
 	exit 0;
 	echo "DTB Failed to Compile"
 	echo " Abort "
+	else
+	echo "DTB Compiled at $CR_DTB"
 	fi
 	rm -rf $CR_DTS/.*.tmp
 	rm -rf $CR_DTS/.*.cmd
@@ -266,6 +251,8 @@ BUILD_DTB()
 	echo " "
 	echo "----------------------------------------------"
 }
+
+# Ramdisk Function
 PACK_BOOT_IMG()
 {
 	echo "----------------------------------------------"
@@ -292,156 +279,146 @@ PACK_BOOT_IMG()
 	# Respect CLEAN build rules
 	BUILD_CLEAN
 }
+
+# Kernel Target Function
+BUILD_VAR(){
+	echo " Starting $CR_VARIANT kernel build..."
+	if [ $CR_VAR = "1" ]; then
+		echo " Building $CR_VARIANT Oneui-Q variant "
+		CR_CONFIG_VAR=$CR_CONFIG_ONEUI
+		CR_VARIANT=$CR_VARIANT-Q
+		CR_DTB_MOUNT=$CR_DTS_ONEUI
+		CR_RAMDISK=$CR_RAMDISK_Q
+		CR_PERMISSIVE="1"
+		CR_HALLIC="1"
+	fi
+	if [ $CR_VAR = "2" ]; then
+		echo " Building $CR_VARIANT OneUI variant "
+		CR_CONFIG_VAR=$CR_CONFIG_ONEUI
+		CR_VARIANT=$CR_VARIANT-TW
+		CR_DTB_MOUNT=$CR_DTS_ONEUI
+		CR_PERMISSIVE="1"
+	fi
+	if [ $CR_VAR = "3" ]; then
+		echo " Building $CR_VARIANT AOSP-Treble variant "
+		CR_CONFIG_VAR=$CR_CONFIG_TREBLE
+		CR_VARIANT=$CR_VARIANT-Treble
+		CR_DTB_MOUNT=$CR_DTS_TREBLE
+		CR_RAMDISK=$CR_RAMDISK_Q
+		CR_PERMISSIVE="1"
+	fi
+	if [ $CR_VAR = "4" ]; then
+		echo " Building $CR_VARIANT Oneui-Treble variant "
+		CR_CONFIG_VAR=$CR_CONFIG_ONEUI
+		CR_VARIANT=$CR_VARIANT-TrebleTW
+		CR_DTB_MOUNT=$CR_DTS_TREBLE
+		CR_RAMDISK=$CR_RAMDISK_Q
+		CR_PERMISSIVE="1"
+	fi
+}
+
+# Single Target Build Function
+BUILD(){
+	if [ "$CR_TARGET" = "1" ]; then
+		echo " Galaxy S7 Flat "
+		CR_CONFIG_SPLIT=$CR_CONFIG_G930
+		CR_DTSFILES=$CR_DTSFILES_G930
+		CR_VARIANT=$CR_VARIANT_G930
+	fi
+	if [ "$CR_TARGET" = "2" ]; then
+		echo " Galaxy S7 Edge "
+		CR_CONFIG_SPLIT=$CR_CONFIG_G935
+		CR_DTSFILES=$CR_DTSFILES_G935
+		CR_VARIANT=$CR_VARIANT_G935
+	fi
+	if [ "$CR_TARGET" = "3" ] || [ "$CR_TARGET" = "4" ] 
+	then
+		echo " Galaxy Note 7 FE "
+		CR_CONFIG_SPLIT=$CR_CONFIG_N935
+		CR_DTSFILES=$CR_DTSFILES_N935
+		CR_VARIANT=$CR_VARIANT_N935
+	if [ "$CR_TARGET" = "4" ]; then
+		echo " Building Bomb Edition "
+		CR_BOMB="1"
+		CR_VARIANT=$CR_VARIANT_N930
+	fi
+	fi
+	CR_CONFIG=$CR_CONFIG_8890
+	BUILD_COMPILER
+	BUILD_CLEAN
+	BUILD_VAR
+	BUILD_IMAGE_NAME
+	BUILD_GENERATE_CONFIG
+	BUILD_ZIMAGE
+	BUILD_DTB
+	PACK_BOOT_IMG
+	BUILD_OUT
+}
+
+# Multi-Target Build Function
+BUILD_ALL(){
+echo "----------------------------------------------"
+echo " Compiling ALL targets "
+CR_TARGET=1
+BUILD
+CR_TARGET=2
+BUILD
+CR_TARGET=3
+BUILD
+CR_TARGET=4
+BUILD
+}
+
 # Main Menu
 clear
 echo "----------------------------------------------"
-echo "$CR_NAME $CR_VERSION Build Script"
+echo "$CR_NAME $CR_VERSION Build Script $CR_DATE"
+echo " "
+echo " "
+echo "1) herolte" "2) hero2lte" "3) gracerlte" "4) gracelte" "5) All" "6) Abort" 
 echo "----------------------------------------------"
-PS3='Please select your option (1-4): '
-menuvar=("SM-G930X" "SM-G935X" "SM-N935X" "Exit")
-select menuvar in "${menuvar[@]}"
-do
-    case $menuvar in
-        "SM-G930X")
-            clear
-            echo "Starting $CR_VARIANT_G930 kernel build..."
-            if [ $CR_MODE = "1" ]; then
-              echo " Building Oneui-Treble variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
-              CR_VARIANT=$CR_VARIANT_G930-TrebleTW
-              CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_Q
-            fi
-            if [ $CR_MODE = "2" ]; then
-              echo " Building AOSP-Treble variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
-              CR_VARIANT=$CR_VARIANT_G930-Treble
-              CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_Q
-            fi
-            if [ $CR_MODE = "3" ]; then
-              echo " Building OneUI variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
-              CR_VARIANT=$CR_VARIANT_G930-TW
-              CR_DTB_MOUNT=$CR_DTS_ONEUI
-            fi
-            if [ $CR_MODE = "4" ]; then
-              echo " Building Oneui-Q variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
-              CR_VARIANT=$CR_VARIANT_G930-Q
-              CR_DTB_MOUNT=$CR_DTS_ONEUI
-              CR_RAMDISK=$CR_RAMDISK_Q
-            fi
-            CR_CONFIG=$CR_CONFIG_8890
-            CR_CONFIG_SPLIT=$CR_CONFIG_G930
-            CR_DTSFILES=$CR_DTSFILES_G930
-            BUILD_IMAGE_NAME
-            BUILD_GENERATE_CONFIG
-            BUILD_ZIMAGE
-            BUILD_DTB
-            PACK_BOOT_IMG
-            BUILD_ROOT
-            BUILD_OUT
-            read -n1 -r key
-            break
-            ;;
-        "SM-G935X")
-            clear
-            echo "Starting $CR_VARIANT_G935 kernel build..."
-            if [ $CR_MODE = "1" ]; then
-              echo " Building Oneui-Treble variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
-              CR_VARIANT=$CR_VARIANT_G935-TrebleTW
-              CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_Q
-            fi
-            if [ $CR_MODE = "2" ]; then
-              echo " Building AOSP-Treble variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
-              CR_VARIANT=$CR_VARIANT_G935-Treble
-              CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_Q
-            fi
-            if [ $CR_MODE = "3" ]; then
-              echo " Building OneUI variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
-              CR_VARIANT=$CR_VARIANT_G935-TW
-              CR_DTB_MOUNT=$CR_DTS_ONEUI
-            fi
-            if [ $CR_MODE = "4" ]; then
-              echo " Building Oneui-Q variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
-              CR_VARIANT=$CR_VARIANT_G935-Q
-              CR_DTB_MOUNT=$CR_DTS_ONEUI
-              CR_RAMDISK=$CR_RAMDISK_Q
-            fi
-            CR_CONFIG=$CR_CONFIG_8890
-            CR_CONFIG_SPLIT=$CR_CONFIG_G935
-            CR_DTSFILES=$CR_DTSFILES_G935
-            BUILD_IMAGE_NAME
-            BUILD_GENERATE_CONFIG
-            BUILD_ZIMAGE
-            BUILD_DTB
-            PACK_BOOT_IMG
-            BUILD_ROOT
-            BUILD_OUT
-            read -n1 -r key
-            break
-            ;;
-        "SM-N935X")
-            clear
-			read -p "Bomb edition? (y/n) > " yn
-			if [ "$yn" = "Y" -o "$yn" = "y" ]; then
-				echo " Building Bomb Edition "
-				CR_BOMB="1"
-				CR_VARIANT_N935=N930X
-			else
-				echo " Building Fan Edition Edition "
-            fi
-            echo "Starting $CR_VARIANT_N935 kernel build..."
-            if [ $CR_MODE = "1" ]; then
-              echo " Building Oneui-Treble variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
-              CR_VARIANT=$CR_VARIANT_N935-TrebleTW
-              CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_Q
-            fi
-            if [ $CR_MODE = "2" ]; then
-              echo " Building AOSP-Treble variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_TREBLE
-              CR_VARIANT=$CR_VARIANT_N935-Treble
-              CR_DTB_MOUNT=$CR_DTS_TREBLE
-              CR_RAMDISK=$CR_RAMDISK_Q
-            fi
-            if [ $CR_MODE = "3" ]; then
-              echo " Building OneUI variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
-              CR_VARIANT=$CR_VARIANT_N935-TW
-              CR_DTB_MOUNT=$CR_DTS_ONEUI
-            fi
-            if [ $CR_MODE = "4" ]; then
-              echo " Building Oneui-Q variant "
-              CR_CONFIG_TYPE=$CR_CONFIG_ONEUI
-              CR_VARIANT=$CR_VARIANT_N935-Q
-              CR_DTB_MOUNT=$CR_DTS_ONEUI
-              CR_RAMDISK=$CR_RAMDISK_Q
-            fi
-            CR_CONFIG=$CR_CONFIG_8890
-            CR_CONFIG_SPLIT=$CR_CONFIG_N935
-            CR_DTSFILES=$CR_DTSFILES_N935
-            BUILD_IMAGE_NAME
-            BUILD_GENERATE_CONFIG
-            BUILD_ZIMAGE
-            BUILD_DTB
-            PACK_BOOT_IMG
-            BUILD_ROOT
-            BUILD_OUT
-            read -n1 -r key
-            break
-            ;;
-        "Exit")
-            break
-            ;;
-        *) echo Invalid option.;;
-    esac
-done
+read -p "Please select your build target (1-4) > " CR_TARGET
+if [ "$CR_TARGET" = "6" ]; then
+echo "Build Aborted"
+exit
+fi
+echo " "
+echo "1) OneUI-Q" "2) OneUI-P" "3) Treble" "4) Treble-OneUI" 
+read -p "Please select your build Variant (1-4) > " CR_VAR
+echo "----------------------------------------------"
+echo " "
+echo "1) $CR_GCC (GCC)"
+echo "2) $CR_CLANG (CLANG)" 
+echo " "
+read -p "Please select your compiler (1-2) > " CR_COMPILER
+read -p "Clean Builds? (y/n) > " CR_CLEAN
+echo " "
+# Call functions
+if [ "$CR_TARGET" = "5" ]; then
+BUILD_ALL
+else
+BUILD
+fi
+
+# DEPRECATED FUNCTIONS / UNCOMPLETED
+
+# Functions
+
+# Got Root?
+#read -p "Kernel SU? (y/n) > " yn
+#if [ "$yn" = "Y" -o "$yn" = "y" ]; then
+#     echo " WARNING : KernelSU Enabled!"
+#     export CONFIG_ASSISTED_SUPERUSER=y
+#     CR_ROOT="1"
+#fi
+
+#BUILD_ROOT()
+#{
+#if [ $CR_ROOT = 1 ]; then
+#     echo " "
+#     echo " WARNING : KernelSU Enabled!"
+#     mv $CR_PRODUCT/$CR_IMAGE_NAME.img $CR_PRODUCT/$CR_IMAGE_NAME-KernelSU.img
+#     CR_IMAGE_NAME=$CR_IMAGE_NAME-KernelSU
+#fi
+#}
+
