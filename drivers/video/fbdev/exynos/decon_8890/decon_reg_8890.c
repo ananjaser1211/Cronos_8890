@@ -1959,7 +1959,7 @@ u32 decon_reg_get_height(u32 id, int dsi_mode)
 	return (val >> DISPIF_HEIGHT_START_POS) & DISPIF_WIDTH_MASK;
 }
 
-const signed long decon_clocks_table[][CLK_ID_MAX] = {
+const double decon_clocks_table[][CLK_ID_MAX] = {
 	/* VCLK,  ECLK,  ACLK,  PCLK,  DISP_PLL,  resolution,           MIC_ratio, DSC count */
 	{    -1,   400,   400,    66,        -1, 3840 * 2160,	  MIC_COMP_BYPASS,         0},
 	{    -1,   400,   400,    66,        -1, 3840 * 2160,	  MIC_COMP_BYPASS,         1},
