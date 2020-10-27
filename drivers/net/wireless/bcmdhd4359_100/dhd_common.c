@@ -24,7 +24,7 @@
  *
  * <<Broadcom-WL-IPTag/Open:>>
  *
- * $Id: dhd_common.c 815855 2019-04-22 05:16:49Z $
+ * $Id: dhd_common.c 853336 2019-12-02 07:16:45Z $
  */
 #include <typedefs.h>
 #include <osl.h>
@@ -297,7 +297,7 @@ enum {
 
 const bcm_iovar_t dhd_iovars[] = {
 	/* name         varid                   flags   flags2 type     minlen */
-	{"version",	IOV_VERSION,		0,	0, IOVT_BUFFER,	sizeof(dhd_version)},
+	{"version",	IOV_VERSION,		0,	0, IOVT_BUFFER,	0},
 #ifdef DHD_DEBUG
 	{"msglevel",	IOV_MSGLEVEL,		0,	0, IOVT_UINT32,	0},
 	{"mem_debug",   IOV_MEM_DEBUG,  0,      0,      IOVT_BUFFER,    0 },
@@ -1450,13 +1450,13 @@ dhd_doiovar(dhd_pub_t *dhd_pub, const bcm_iovar_t *vi, uint32 actionid, const ch
 	switch (actionid) {
 	case IOV_GVAL(IOV_VERSION):
 		/* Need to have checked buffer length */
-		dhd_ver_len = strlen(dhd_version);
+		dhd_ver_len = sizeof(dhd_version) - 1;
 		bus_api_rev_len = strlen(bus_api_revision);
-		if (dhd_ver_len)
-			bcm_strncpy_s((char*)arg, dhd_ver_len, dhd_version, dhd_ver_len);
-		if (bus_api_rev_len)
-			bcm_strncat_s((char*)arg + dhd_ver_len, bus_api_rev_len, bus_api_revision,
-				bus_api_rev_len);
+		if (len > dhd_ver_len + bus_api_rev_len) {
+			memcpy((char *)arg, dhd_version, dhd_ver_len);
+			memcpy((char *)arg + dhd_ver_len, bus_api_revision, bus_api_rev_len);
+			*((char *)arg + dhd_ver_len + bus_api_rev_len) = '\0';
+		}
 		break;
 
 	case IOV_GVAL(IOV_MSGLEVEL):
@@ -2399,7 +2399,7 @@ dhd_ioctl(dhd_pub_t * dhd_pub, dhd_ioctl_t *ioc, void *buf, uint buflen)
 				for (arg = buf, arglen = buflen; *arg && arglen; arg++, arglen--)
 					;
 
-				if (*arg) {
+				if (arglen == 0 || *arg) {
 					bcmerror = BCME_BUFTOOSHORT;
 					goto unlock_exit;
 				}

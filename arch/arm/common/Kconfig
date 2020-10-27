@@ -20,3 +20,4 @@ config SHARP_SCOOP
 
 config TI_PRIV_EDMA
 	bool
+
