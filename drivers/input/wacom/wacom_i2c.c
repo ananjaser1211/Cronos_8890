@@ -1460,10 +1460,12 @@ static ssize_t epen_firmware_update_store(struct device *dev,
 	input_info(true, &wac_i2c->client->dev,  "%s\n", __func__);
 
 	switch (*buf) {
+#ifndef CONFIG_SAMSUNG_PRODUCT_SHIP
 	case 'i':
 	case 'I':
 		fw_path = FW_IN_SDCARD;
 		break;
+#endif
 	case 'k':
 	case 'K':
 		fw_path = FW_BUILT_IN;
