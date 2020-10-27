@@ -25,7 +25,7 @@
  *
  * <<Broadcom-WL-IPTag/Open:>>
  *
- * $Id: dhd_linux.c 818247 2019-05-07 04:15:13Z $
+ * $Id: dhd_linux.c 846077 2019-10-17 03:09:04Z $
  */
 
 #include <typedefs.h>
@@ -22096,6 +22096,15 @@ dhd_debug_info_dump(void)
 	DHD_OS_WAKE_UNLOCK(dhdp);
 }
 EXPORT_SYMBOL(dhd_debug_info_dump);
+
+void
+dhd_smmu_fault_handler(uint32 axid, ulong fault_addr)
+{
+	DHD_ERROR(("%s: Trigger SMMU Fault\n", __FUNCTION__));
+	DHD_ERROR(("%s: axid:0x%x, fault_addr:0x%lx", __FUNCTION__, axid, fault_addr));
+	dhd_debug_info_dump();
+}
+EXPORT_SYMBOL(dhd_smmu_fault_handler);
 #endif /* DHD_MAP_LOGGING */
 int
 dhd_get_host_whitelist_region(void *buf, uint len)
