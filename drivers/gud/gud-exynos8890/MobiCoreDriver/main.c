@@ -121,8 +121,8 @@ static inline void kasnprintf_buf_reset(struct kasnprintf_buf *buf)
 }
 
 ssize_t debug_generic_read(struct file *file, char __user *user_buf,
-			   size_t count, loff_t *ppos,
-			   int (*function)(struct kasnprintf_buf *buf))
+							size_t count, loff_t *ppos,
+							int (*function)(struct kasnprintf_buf *buf))
 {
 	struct kasnprintf_buf *buf = file->private_data;
 	int ret = 0;
@@ -132,11 +132,11 @@ ssize_t debug_generic_read(struct file *file, char __user *user_buf,
 	if (!*ppos) {
 		kasnprintf_buf_reset(buf);
 		ret = function(buf);
-		if (ret < 0) {
+	    if (ret < 0) {
 			kasnprintf_buf_reset(buf);
 			goto end;
 		}
-		}
+	}
 
 	ret = simple_read_from_buffer(user_buf, count, ppos, buf->buf,
 									buf->off);
@@ -144,7 +144,7 @@ ssize_t debug_generic_read(struct file *file, char __user *user_buf,
 	end:
 		mutex_unlock(&buf->mutex);
 		return ret;
-	}
+}
 
 int debug_generic_open(struct inode *inode, struct file *file)
 {
@@ -655,9 +655,9 @@ static int mobicore_probe(struct platform_device *pdev)
 	}
 
 	/*
-	* Create admin dev so that daemon can already communicate with
-	* the driver
-	*/
+	 * Create admin dev so that daemon can already communicate with
+	 * the driver
+	 */
 	err = device_admin_init();
 	if (err)
 		goto fail_creat_dev_admin;
@@ -674,7 +674,7 @@ static int mobicore_probe(struct platform_device *pdev)
 	 */
 	mc_switch_core(NONBOOT_LITTLE_CORE);
 
-		return 0;
+	return 0;
 
 fail_start:
 	device_admin_exit();

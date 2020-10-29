@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 TRUSTONIC LIMITED
+ * Copyright (c) 2013-2015 TRUSTONIC LIMITED
  * All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or
@@ -37,6 +37,10 @@
 #include "clock.h"	/* mc_clock_enable, mc_clock_disable */
 #include "fastcall.h"
 
+#ifdef CONFIG_RKP_CFP_FIX_SMC_BUG
+#include <linux/rkp_cfp.h>
+#endif
+
 /* ExySp: Lock for core switch processing */
 #ifdef CONFIG_SECURE_OS_BOOSTER_API
 struct mutex core_switch_lock;
@@ -48,7 +52,7 @@ int __mc_switch_core(int cpu);
 #endif
 
 #if KERNEL_VERSION(3, 15, 0) > LINUX_VERSION_CODE
-#define MIN_NICE	-20
+#define MIN_NICE   -20
 #endif
 
 struct fastcall_work {
@@ -174,7 +178,13 @@ static inline int _smc(union mc_fc_generic *mc_fc_generic)
 		 * the asm code might clobber them.
 		 */
 		__asm__ volatile (
+#ifdef CONFIG_RKP_CFP_FIX_SMC_BUG
+			PRE_SMC_INLINE
+#endif
 			"smc #0\n"
+#ifdef CONFIG_RKP_CFP_FIX_SMC_BUG
+			POST_SMC_INLINE
+#endif
 			: "+r"(reg0), "+r"(reg1), "+r"(reg2), "+r"(reg3)
 			:
 			: "x4", "x5", "x6", "x7", "x8", "x9", "x10", "x11",
@@ -195,7 +205,13 @@ static inline int _smc(union mc_fc_generic *mc_fc_generic)
 			 */
 			".arch_extension sec\n"
 #endif /* MC_ARCH_EXTENSION_SEC */
+#ifdef CONFIG_RKP_CFP_FIX_SMC_BUG
+			PRE_SMC_INLINE
+#endif
 			"smc #0\n"
+#ifdef CONFIG_RKP_CFP_FIX_SMC_BUG
+			POST_SMC_INLINE
+#endif
 			: "+r"(reg0), "+r"(reg1), "+r"(reg2), "+r"(reg3)
 		);
 
@@ -307,7 +323,7 @@ static int mobicore_cpu_callback(struct notifier_block *nfb,
 				 unsigned long action, void *hcpu)
 {
 	int cpu = (int)(uintptr_t)hcpu;
-	
+
 	switch (action) {
 #ifdef CONFIG_SECURE_OS_BOOSTER_API
 /* ExySp: for sos performance */
@@ -428,6 +444,7 @@ static void fastcall_work_func(struct work_struct *work)
 		}
 #endif
 		_smc(mc_fc_generic);
+
 	/* ExySp: for sos performance */
 #ifdef CONFIG_SECURE_OS_BOOSTER_API
 		if (irq_check_cnt) {
@@ -492,7 +509,7 @@ int mc_fastcall_init(void)
 		mc_dev_err("cannot create fastcall wq: %d\n", ret);
 		return ret;
 	}
-
+	
 	set_user_nice(fastcall_thread, MIN_NICE);
 
 	/* this thread MUST run on CPU 0 at startup */
@@ -732,16 +749,16 @@ int mc_switch_core(int cpu)
 #ifdef CONFIG_SECURE_OS_BOOSTER_API
 int mc_switch_core(int cpu)
 {
-	int ret;
-	mutex_lock(&core_switch_lock);
-	if (!(core_status & (0x1 << cpu))){
-		mc_dev_devel("Core status... core #%d is off line\n", cpu);
-		mutex_unlock(&core_switch_lock);
-		return 1;
-	}
-	ret = __mc_switch_core(cpu);
-	mutex_unlock(&core_switch_lock);
-	return ret;
+       int ret;
+       mutex_lock(&core_switch_lock);
+       if (!(core_status & (0x1 << cpu))){
+               mc_dev_devel("Core status... core #%d is off line\n", cpu);
+               mutex_unlock(&core_switch_lock);
+               return 1;
+       }
+       ret = __mc_switch_core(cpu);
+       mutex_unlock(&core_switch_lock);
+       return ret;
 }
 #endif
 #endif

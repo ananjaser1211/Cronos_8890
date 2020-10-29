@@ -496,10 +496,6 @@ static void mc_admin_sendcrashdump(void)
 {
 	int ret = 0;
 
-	/* ExySp: to be updated in official release */
-	/* Prevent daemon reconnection */
-	admin_ctx.last_start_ret = -EHOSTUNREACH;
-
 	/* Lock communication channel */
 	channel_lock();
 
