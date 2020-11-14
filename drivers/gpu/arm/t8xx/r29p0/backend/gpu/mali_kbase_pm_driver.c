@@ -1494,7 +1494,7 @@ static void kbase_pm_wait_for_reset(struct kbase_device *kbdev)
 {
 	lockdep_assert_held(&kbdev->pm.lock);
 
-	wait_event(kbdev->pm.backend.reset_done_wait,
+	wait_event_interruptible(kbdev->pm.backend.reset_done_wait,
 						(kbdev->pm.backend.reset_done));
 	kbdev->pm.backend.reset_done = false;
 }

@@ -160,7 +160,7 @@ int kbase_instr_hwcnt_disable_internal(struct kbase_context *kctx)
 		spin_unlock_irqrestore(&kbdev->hwaccess_lock, pm_flags);
 
 		/* Ongoing dump/setup - wait for its completion */
-		wait_event(kbdev->hwcnt.backend.wait,
+		wait_event_interruptible(kbdev->hwcnt.backend.wait,
 					kbdev->hwcnt.backend.triggered != 0);
 	}
 
@@ -331,7 +331,7 @@ int kbase_instr_hwcnt_wait_for_dump(struct kbase_context *kctx)
 	int err;
 
 	/* Wait for dump & cache clean to complete */
-	wait_event(kbdev->hwcnt.backend.wait,
+	wait_event_interruptible(kbdev->hwcnt.backend.wait,
 					kbdev->hwcnt.backend.triggered != 0);
 
 	spin_lock_irqsave(&kbdev->hwcnt.lock, flags);

@@ -363,7 +363,7 @@ static int kbasep_common_test_interrupt(
 					HR_TIMER_DELAY_MSEC(IRQ_TEST_TIMEOUT),
 					HRTIMER_MODE_REL);
 
-			wait_event(kbasep_irq_test_data.wait,
+			wait_event_interruptible(kbasep_irq_test_data.wait,
 					kbasep_irq_test_data.triggered != 0);
 
 			if (kbasep_irq_test_data.timeout != 0) {
