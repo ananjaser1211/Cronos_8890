@@ -450,7 +450,7 @@
 					      7 >; /* Number of online core is 4 */
 
 		/* Boost freq*/
-		cl0_boost_freq = <754000>;
+		cl0_boost_freq = <650000>;
 
 		/*APO table ->	 idx   freq    volt   bus_lock */
 		cl0_dvfs_domain_name = "dvfs_little";
