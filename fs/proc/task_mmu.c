@@ -19,8 +19,10 @@
 #include <asm/tlbflush.h>
 #include "internal.h"
 
+#if defined(CONFIG_ZSWAP)
 extern u64 zswap_pool_pages;
 extern atomic_t zswap_stored_pages;
+#endif
 
 void task_mem(struct seq_file *m, struct mm_struct *mm)
 {
@@ -87,6 +89,7 @@ unsigned long task_statm(struct mm_struct *mm,
 	*resident = *shared + get_mm_counter(mm, MM_ANONPAGES);
 	return mm->total_vm;
 }
+#if defined(CONFIG_ZSWAP)
 void task_statlmkd(struct mm_struct *mm, unsigned long *size,
 			 unsigned long *resident, unsigned long *swapresident)
 {
@@ -103,6 +106,7 @@ void task_statlmkd(struct mm_struct *mm, unsigned long *size,
 						/ zswap_stored_pages_temp;
 	}
 }
+#endif
 #ifdef CONFIG_NUMA
 /*
  * Save get_task_policy() for show_numa_map().
