@@ -13349,9 +13349,8 @@ void dhd_detach(dhd_pub_t *dhdp)
 	}
 #endif /* DHD_ERPOM */
 
-	if (&dhd->dhd_hang_process_work) {
-		cancel_work_sync(&dhd->dhd_hang_process_work);
-	}
+	cancel_work_sync(&dhd->dhd_hang_process_work);
+
 	/* Prefer adding de-init code above this comment unless necessary.
 	 * The idea is to cancel work queue, sysfs and flags at the end.
 	 */
