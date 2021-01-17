@@ -766,7 +766,8 @@ ifneq ($(CONFIG_BCM4359),)
   DHDCFLAGS += -DDISABLE_PM_BCNRX
   DHDCFLAGS += -DWL_STATIC_IF
   DHDCFLAGS += -DWL_STATIC_IFNAME_PREFIX="\"swlan0\""
-
+# Iface force dev close
+  DHDCFLAGS += -DIFACE_HANG_FORCE_DEV_CLOSE
 # Use Legacy dump path
 ifneq ($(USE_LEGACY_DUMP_PATH),)
   DHDCFLAGS += -DDHD_COMMON_DUMP_PATH="\"/data/media/wifi/log/\""
