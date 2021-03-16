@@ -974,7 +974,7 @@ static int exynos5_i2c_xfer_msg(struct exynos5_i2c *i2c, struct i2c_msg *msgs, i
 		writel(i2c_int_en, i2c->regs + HSI2C_INT_ENABLE);
 		enable_irq(i2c->irq);
 	} else {
-		writel(0x0, i2c->regs + HSI2C_INT_ENABLE);
+		writel(HSI2C_INT_TRANSFER_DONE, i2c->regs + HSI2C_INT_ENABLE);
 	}
 
 	ret = -EAGAIN;
