@@ -1070,8 +1070,8 @@ static int exynos5_i2c_xfer_msg(struct exynos5_i2c *i2c, struct i2c_msg *msgs, i
 		if (operation_mode == HSI2C_POLLING) {
 			while (time_before(jiffies, timeout)) {
 				trans_status = readl(i2c->regs + HSI2C_INT_STATUS);
-				writel(trans_status, i2c->regs +  HSI2C_INT_STATUS);
 				if (trans_status & HSI2C_INT_TRANSFER_DONE) {
+					writel(trans_status, i2c->regs +  HSI2C_INT_STATUS);
 					ret = 0;
 					break;
 				}
