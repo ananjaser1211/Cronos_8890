@@ -900,6 +900,7 @@ static int exynos5_i2c_xfer_msg(struct exynos5_i2c *i2c, struct i2c_msg *msgs, i
 {
 	unsigned long timeout;
 	unsigned long trans_status;
+	unsigned long fifo_status;
 	unsigned long i2c_ctl;
 	unsigned long i2c_auto_conf;
 	unsigned long i2c_timeout;
@@ -1070,7 +1071,9 @@ static int exynos5_i2c_xfer_msg(struct exynos5_i2c *i2c, struct i2c_msg *msgs, i
 		if (operation_mode == HSI2C_POLLING) {
 			while (time_before(jiffies, timeout)) {
 				trans_status = readl(i2c->regs + HSI2C_INT_STATUS);
-				if (trans_status & HSI2C_INT_TRANSFER_DONE) {
+				fifo_status = readl(i2c->regs + HSI2C_FIFO_STATUS);
+				if (trans_status & HSI2C_INT_TRANSFER_DONE &&
+					fifo_status & HSI2C_TX_FIFO_EMPTY) {
 					writel(trans_status, i2c->regs +  HSI2C_INT_STATUS);
 					ret = 0;
 					break;
