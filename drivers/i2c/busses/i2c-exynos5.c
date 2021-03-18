@@ -1862,8 +1862,22 @@ static int exynos5_i2c_suspend_noirq(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct exynos5_i2c *i2c = platform_get_drvdata(pdev);
+	int ret = 0;
 
 	i2c_lock_adapter(&i2c->adap);
+
+	exynos_update_ip_idle_status(i2c->idle_ip_index, 0);
+	ret = clk_enable(i2c->clk);
+	if (ret) {
+		exynos_update_ip_idle_status(i2c->idle_ip_index, 1);
+		i2c_unlock_adapter(&i2c->adap);
+		return ret;
+	}
+	/* I2C for batcher doesn't need reset */
+	if(!(i2c->support_hsi2c_batcher))
+		writel(HSI2C_SW_RST, i2c->regs + HSI2C_CTL);
+	clk_disable(i2c->clk);
+	exynos_update_ip_idle_status(i2c->idle_ip_index, 1);
 
 	if (!pm_runtime_status_suspended(dev))
 		exynos5_i2c_runtime_suspend(dev);
