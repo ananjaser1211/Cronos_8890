@@ -1655,6 +1655,7 @@ static int exynos5_i2c_probe(struct platform_device *pdev)
 		if (i2c->regs_mailbox == NULL) {
 			dev_err(&pdev->dev, "cannot map MAILBOX IO\n");
 			ret = PTR_ERR(i2c->regs_mailbox);
+			goto err_clk;
 		}
 
 		if (!i2c->support_hsi2c_batcher && i2c->regs_mailbox){
@@ -1673,6 +1674,7 @@ static int exynos5_i2c_probe(struct platform_device *pdev)
 			if (pmu_batcher == NULL) {
 				dev_err(&pdev->dev, "cannot map PMIC for batcher enable\n");
 				ret = PTR_ERR(pmu_batcher);
+				goto err_clk;
 			}
 			writel(0x3,pmu_batcher);
 		}
@@ -1819,13 +1821,15 @@ static int exynos5_i2c_resume_noirq(struct device *dev)
 	struct exynos5_i2c *i2c = platform_get_drvdata(pdev);
 
 	i2c_lock_adapter(&i2c->adap);
-	exynos_update_ip_idle_status(i2c->idle_ip_index, 0);
-	clk_prepare_enable(i2c->clk);
+
 	/* I2C for batcher doesn't need reset */
-	if(!(i2c->support_hsi2c_batcher))
+	if(!(i2c->support_hsi2c_batcher)) {
+		exynos_update_ip_idle_status(i2c->idle_ip_index, 0);
+		clk_prepare_enable(i2c->clk);
 		exynos5_i2c_reset(i2c);
-	clk_disable_unprepare(i2c->clk);
-	exynos_update_ip_idle_status(i2c->idle_ip_index, 1);
+		clk_disable_unprepare(i2c->clk);
+		exynos_update_ip_idle_status(i2c->idle_ip_index, 1);
+	}
 	i2c->suspended = 0;
 	i2c_unlock_adapter(&i2c->adap);
 
