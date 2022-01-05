@@ -35,7 +35,7 @@ CR_KERNEL=$CR_DIR/arch/arm64/boot/Image
 # Compiled dtb by dtbtool
 CR_DTB=$CR_DIR/boot.img-dtb
 # Kernel Name and Version
-CR_VERSION=V6.5
+CR_VERSION=V7.0
 CR_NAME=CronosKernel
 # Thread count
 CR_JOBS=$(nproc --all)
@@ -310,7 +310,7 @@ BUILD_VAR(){
 		CR_HALLIC="1"
 	fi
 	if [ $CR_VAR = "2" ]; then
-		echo " Building $CR_VARIANT OneUI variant "
+		echo " Building $CR_VARIANT OneUI-P variant "
 		CR_CONFIG_VAR=$CR_CONFIG_ONEUI
 		CR_VARIANT=$CR_VARIANT-P
 		CR_DTB_MOUNT=$CR_DTS_ONEUI
@@ -394,14 +394,14 @@ echo " "
 echo " "
 echo "1) herolte" "2) hero2lte" "3) gracerlte" "4) gracelte" "5) All" "6) Abort" 
 echo "----------------------------------------------"
-read -p "Please select your build target (1-4) > " CR_TARGET
+read -p "Please select your build target (1-6) > " CR_TARGET
 if [ "$CR_TARGET" = "6" ]; then
 echo "Build Aborted"
 exit
 fi
 echo " "
-echo "1) OneUI-Q" "2) OneUI-P" "3) Treble" "4) Treble-OneUI" 
-read -p "Please select your build Variant (1-4) > " CR_VAR
+echo "1) OneUI-Q" "2) OneUI-P"
+read -p "Please select your build Variant (1-2) > " CR_VAR
 echo "----------------------------------------------"
 echo " "
 echo "1) $CR_GCC4 (GCC 4.9)"
