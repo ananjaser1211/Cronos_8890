@@ -9,6 +9,10 @@ config VIDEO_EXYNOS_FIMC_IS2
 	default n
 	help
 	  This is a v4l2 driver for exynos FIMC-IS device.
+	  
+config GRACE_MODEL
+	bool "Galaxy Note 7/7FE Identifier"
+	default n
 
 source "drivers/media/platform/exynos/fimc-is2/sensor/Kconfig"
 source "drivers/media/platform/exynos/fimc-is2/ischain/Kconfig"
