@@ -550,7 +550,10 @@ snd_compr_set_params(struct snd_compr_stream *stream, unsigned long arg)
 		stream->metadata_set = false;
 		stream->next_track = false;
 
-		stream->runtime->state = SNDRV_PCM_STATE_SETUP;
+		if (stream->direction == SND_COMPRESS_PLAYBACK)
+			stream->runtime->state = SNDRV_PCM_STATE_SETUP;
+		else
+			stream->runtime->state = SNDRV_PCM_STATE_PREPARED;
 	} else {
 		return -EPERM;
 	}
