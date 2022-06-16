@@ -505,6 +505,10 @@ config LEDS_VERSATILE
 	  This option enabled support for the LEDs on the ARM Versatile
 	  and RealView boards. Say Y to enabled these.
 
+config GRACE_MODEL
+	bool "Galaxy Note 7/7FE Identifier"
+	default n
+
 config LEDS_S2MPB02
 	bool "LED support for the S2MPB02"
 	depends on LEDS_CLASS
