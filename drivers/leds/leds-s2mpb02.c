@@ -685,7 +685,11 @@ static int of_s2mpb02_torch_dt(struct s2mpb02_dev *iodev,
 		} else {
 			pr_info("%s: torch current value dt parsing skipped index(%d)\n", __func__, index);
 			if (index != S2MPB02_FLASH_LED_1) {
+#ifndef CONFIG_GRACE_MODEL
 				pdata->leds[index].torch_current_value = S2MPB02_TORCH_OUT_I_60MA;
+#else
+				pdata->leds[index].torch_current_value = S2MPB02_TORCH_OUT_I_240MA;
+#endif
 				pdata->leds[index].factory_torch_current_value = S2MPB02_TORCH_OUT_I_240MA;
 			}
 		}
