@@ -1625,13 +1625,13 @@ int fimc_is_sensor_s_input(struct fimc_is_device_sensor *device,
 		hpg_qos = fimc_is_get_qos(core, FIMC_IS_DVFS_HPG, START_DVFS_LEVEL);
 
 		/* DEVFREQ lock */
-		if (int_qos > 0)
+		if (int_qos > 0 && !pm_qos_request_active(&exynos_isp_qos_int))
 			pm_qos_add_request(&exynos_isp_qos_int, PM_QOS_DEVICE_THROUGHPUT, int_qos);
-		if (mif_qos > 0)
+		if (mif_qos > 0 && !pm_qos_request_active(&exynos_isp_qos_mem))
 			pm_qos_add_request(&exynos_isp_qos_mem, PM_QOS_BUS_THROUGHPUT, mif_qos);
-		if (cam_qos > 0)
+		if (cam_qos > 0 && !pm_qos_request_active(&exynos_isp_qos_cam))
 			pm_qos_add_request(&exynos_isp_qos_cam, PM_QOS_CAM_THROUGHPUT, cam_qos);
-		if (hpg_qos > 0)
+		if (hpg_qos > 0 && !pm_qos_request_active(&exynos_isp_qos_hpg))
 			pm_qos_add_request(&exynos_isp_qos_hpg, PM_QOS_CPU_ONLINE_MIN, hpg_qos);
 
 		info("[RSC] %s: QoS LOCK [INT(%d), MIF(%d), CAM(%d), HPG(%d)]\n",
@@ -2578,7 +2578,7 @@ int fimc_is_sensor_front_start(struct fimc_is_device_sensor *device,
 		ret = fimc_is_dvfs_sel_table(device->resourcemgr);
 		if (ret) {
 			merr("fimc_is_dvfs_sel_table is fail(%d)", device, ret);
-			mutex_unlock(&dvfs_ctrl->lock); 
+			mutex_unlock(&dvfs_ctrl->lock);
 			goto p_err;
 		}
 
