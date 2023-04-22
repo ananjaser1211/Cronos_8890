@@ -33,7 +33,7 @@ CR_RAMDISK_Q=$CR_DIR/Cronos/Q
 # Compiled image name and location (Image/zImage)
 CR_KERNEL=$CR_DIR/arch/arm64/boot/Image
 # Compiled dtb by dtbtool
-CR_DTB=$CR_DIR/boot.img-dtb
+CR_DTB=$CR_DIR/arch/arm64/boot/dtb.img
 # Kernel Name and Version
 CR_VERSION=V8.0
 CR_NAME=CronosKernel
@@ -52,15 +52,12 @@ export PLATFORM_VERSION=$CR_PLATFORM
 export $CR_ARCH
 ##########################################
 # Device specific Variables [SM-G930X]
-CR_DTSFILES_G930="exynos8890-herolte_eur_open_08.dtb exynos8890-herolte_eur_open_09.dtb exynos8890-herolte_eur_open_10.dtb"
 CR_CONFIG_G930=hero_defconfig
 CR_VARIANT_G930=G930X
 # Device specific Variables [SM-G935X]
-CR_DTSFILES_G935="exynos8890-hero2lte_eur_open_00.dtb exynos8890-hero2lte_eur_open_01.dtb exynos8890-hero2lte_eur_open_03.dtb exynos8890-hero2lte_eur_open_04.dtb exynos8890-hero2lte_eur_open_08.dtb"
 CR_CONFIG_G935=hero2_defconfig
 CR_VARIANT_G935=G935X
 # Device specific Variables [SM-N935X]
-CR_DTSFILES_N935="exynos8890-gracelte_eur_open_00.dtb exynos8890-gracelte_eur_open_01.dtb exynos8890-gracelte_eur_open_02.dtb exynos8890-gracelte_eur_open_03.dtb exynos8890-gracelte_eur_open_05.dtb exynos8890-gracelte_eur_open_07.dtb exynos8890-gracelte_eur_open_09.dtb exynos8890-gracelte_eur_open_11.dtb"
 CR_CONFIG_N935=gracer_defconfig
 CR_VARIANT_N935=N935X
 CR_VARIANT_N930=N930X
@@ -248,17 +245,14 @@ BUILD_DTB()
 {
 	echo "----------------------------------------------"
 	echo " "
-	echo "Building DTB for $CR_VARIANT"
-	# Use the DTS list provided in the build script.
-	# This source does not compile dtbs while doing Image
-	$compile $CR_DTSFILES
-	./tools/dtbTool/dtbTool -o $CR_DTB -d $CR_DTS/ -s 2048
+	echo "Checking DTB for $CR_VARIANT"
+	# This source does compiles dtbs while doing Image
 	if [ ! -e $CR_DTB ]; then
-	exit 0;
-	echo "DTB Failed to Compile"
-	echo " Abort "
+        exit 0;
+        echo "DTB Failed to Compile"
+        echo " Abort "
 	else
-	echo "DTB Compiled at $CR_DTB"
+        echo "DTB Compiled at $CR_DTB"
 	fi
 	rm -rf $CR_DTS/.*.tmp
 	rm -rf $CR_DTS/.*.cmd
