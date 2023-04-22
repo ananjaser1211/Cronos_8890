@@ -1,5 +1,9 @@
 ################################################################################
-1. How to Build
+1. Download and unzip the kernel source of N935FXXS7CTJ2.
+
+2. Unzip and update the kernel source of N935FXXS8CUD1.
+
+3. How to Build
         - get Toolchain
                 From android git server, codesourcery and etc ..
                 - gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
@@ -9,14 +13,13 @@
                         EX)  CROSS_COMPILE=/usr/local/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android- // check the location of toolchain
         - to Build
                 $ export ANDROID_MAJOR_VERSION=p
-                $ export ARCH=arm64
-                $ make exynos8890-gracelte_defconfig
-                $ make
+                $ make ARCH=arm64 exynos8890-gracelte_defconfig
+                $ make ARCH=arm64
 
-2. Output files
+4. Output files
         - Kernel : arch/arm64/boot/Image
         - module : drivers/*/*.ko
 
-3. How to Clean
+5. How to Clean
         $ make clean
 ################################################################################
