@@ -155,6 +155,8 @@ fi
 BUILD_IMAGE_NAME()
 {
 	CR_IMAGE_NAME=$CR_NAME-$CR_VERSION-$CR_VARIANT-$CR_DATE
+	zver=$CR_NAME-$CR_VERSION-$CR_DATE
+    
 }
 
 # Config Generation Function
@@ -191,6 +193,7 @@ BUILD_GENERATE_CONFIG()
     echo " Building Permissive Kernel"
     echo "CONFIG_ALWAYS_PERMISSIVE=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
     CR_IMAGE_NAME=$CR_IMAGE_NAME-Permissive
+    zver=$zver-Permissive
   fi
   # Invert HALIC Readout when targeting OneUI Q
   if [ $CR_HALLIC = "1" ]; then
