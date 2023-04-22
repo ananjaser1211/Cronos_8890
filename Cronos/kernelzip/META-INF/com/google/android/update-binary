@@ -66,6 +66,8 @@ if echo $device | grep '[GN]93[05]'; then
     fi
 
     ui_print "- Installing CronosKernel"
+    # Flash Blank Ramdisk to cleanup Magisk and other kernel leftovers
+    dd if=/tmp/floyd/ramdisk.img of=$boot bs=4096
     cd /tmp/floyd && rm -rf /tmp/floydKernel && mkdir -p /tmp/floydKernel && cd /tmp/floydKernel
     cp /tmp/floyd/tools/magiskboot imgtool && chmod 777 imgtool
     dd if=$boot of=/tmp/floydKernel/old-boot.img bs=4096
