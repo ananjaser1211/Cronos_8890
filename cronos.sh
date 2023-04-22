@@ -81,6 +81,7 @@ CR_GCC11=~/Android/Toolchains/aarch64-linux-gnu-11.x/bin/aarch64-linux-gnu-
 CR_GCC9=~/Android/Toolchains/aarch64-linux-gnu-9.x/bin/aarch64-linux-gnu-
 CR_CLANG=~/Android/Toolchains/clang-r399163/bin
 CR_GCC4=~/Android/Toolchains/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+CR_LINARO=~/Android/Toolchains/aarch64-linaro-4.9.4-linux-gnu/bin/aarch64-linux-gnu-
 #####################################################
 
 # Compiler Selection
@@ -92,14 +93,14 @@ compile="make"
 CR_COMPILER="$CR_GCC4"
 fi
 if [ $CR_COMPILER = "2" ]; then
+export CROSS_COMPILE=$CR_LINARO
+compile="make"
+CR_COMPILER="$CR_LINARO"
+fi
+if [ $CR_COMPILER = "3" ]; then
 export CROSS_COMPILE=$CR_GCC9
 compile="make"
 CR_COMPILER="$CR_GCC9"
-fi
-if [ $CR_COMPILER = "3" ]; then
-export CROSS_COMPILE=$CR_GCC11
-compile="make"
-CR_COMPILER="$CR_GCC11"
 fi
 if [ $CR_COMPILER = "4" ]; then
 export CROSS_COMPILE=$CR_GCC12
@@ -405,8 +406,8 @@ read -p "Please select your build Variant (1-2) > " CR_VAR
 echo "----------------------------------------------"
 echo " "
 echo "1) $CR_GCC4 (GCC 4.9)"
-echo "2) $CR_GCC9 (GCC 9.x)" 
-echo "3) $CR_GCC11 (GCC 11.x)" 
+echo "2) $CR_LINARO (Linaro 4.9.4)" 
+echo "3) $CR_GCC9 (GCC 9.x)" 
 echo "4) $CR_GCC12 (GCC 12.x)" 
 echo "5) $CR_CLANG (CLANG)" 
 echo " "
