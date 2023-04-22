@@ -107,12 +107,11 @@ security/selinux/flask.h
 security/selinux/av_permissions.h
 fips_fmp_utils
 drivers/gpu/arm/mali400/ump/arch
->>>>>>> 4f66b683ad0... security: remove selinux symlink
 # Work
 Cronos/Out/*.img
 Cronos/Out/*.zip
 Cronos/Product/*.img
-Cronos/Product/*.img
+Cronos/Product/*.zip
 Cronos/R/*
 Cronos/Flashable/*.zip
 Cronos/Flashable/Cronos/device
@@ -120,3 +119,5 @@ drivers/gator/gator_src_md5.h
 arch/arm64/configs/tmp_defconfig
 arch/arm64/boot/dts/exynos8890.dtsi
 arch/arm64/kernel/vdso/vdso.so
+Cronos/Out/kernelzip/*
+

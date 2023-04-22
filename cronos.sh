@@ -25,6 +25,9 @@ CR_DTS_ONEUI=arch/arm64/boot/exynos8890_Oneui.dtsi
 # Define boot.img out dir
 CR_OUT=$CR_DIR/Cronos/Out
 CR_PRODUCT=$CR_DIR/Cronos/Product
+# Kernel Zip Package
+CR_ZIP=$CR_DIR/Cronos/kernelzip
+CR_OUTZIP=$CR_OUT/kernelzip
 # Presistant A.I.K Location
 CR_AIK=$CR_DIR/Cronos/A.I.K
 # Main Ramdisk Location
@@ -371,8 +374,13 @@ BUILD(){
 	BUILD_GENERATE_CONFIG
 	BUILD_ZIMAGE
 	BUILD_DTB
+	if [ "$CR_MKZIP" = "y" ]; then # Allow Zip Package for mass compile only
+	echo " Start Build ZIP Process "
+	PACK_KERNEL_ZIP
+	else
 	PACK_BOOT_IMG
 	BUILD_OUT
+	fi
 }
 
 # Multi-Target Build Function
@@ -389,19 +397,96 @@ CR_TARGET=4
 BUILD
 }
 
+
+# Pack All Images into ZIP
+PACK_KERNEL_ZIP() {
+echo "----------------------------------------------"
+echo " Packing ZIP "
+
+# Variables
+CR_BASE_KERNEL=$CR_OUTZIP/floyd/G960F-kernel
+CR_BASE_DTB=$CR_OUTZIP/floyd/G960F-dtb
+
+# Check packages
+if ! dpkg-query -W -f='${Status}' bsdiff  | grep "ok installed"; then 
+	echo " bsdiff is missing, please install with sudo apt install bsdiff" 
+	exit 0; 
+fi
+
+# Initalize with base image (herolte)
+if [ "$CR_TARGET" = "1" ]; then # Always must run ONCE during BUILD_ALL otherwise fail. Setup directories
+	echo " "
+	echo " Kernel Zip Packager "
+	echo " Base Target "
+	echo " Clean Out directory "
+	echo " "
+	rm -rf $CR_OUTZIP
+	cp -r $CR_ZIP $CR_OUTZIP
+	echo " "
+	echo " Copying $CR_BASE_KERNEL "
+	echo " Copying $CR_BASE_DTB "
+	echo " "
+	if [ ! -e $CR_KERNEL ] || [ ! -e $CR_DTB ]; then
+        exit 0;
+        echo " Kernel not found!"
+        echo " Abort "
+	else
+        cp $CR_KERNEL $CR_BASE_KERNEL
+        cp $CR_DTB $CR_BASE_DTB
+	fi
+	# Set kernel version
+fi
+if [ ! "$CR_TARGET" = "1" ]; then # Generate patch files for non herolte kernels
+	echo " "
+	echo " Kernel Zip Packager "
+	echo " "
+	echo " Generating Patch kernel for $CR_VARIANT "
+	echo " "
+	if [ ! -e $CR_KERNEL ] || [ ! -e $CR_DTB ]; then
+        echo " Kernel not found! "
+        echo " Abort "
+        exit 0;
+	else
+		bsdiff $CR_BASE_KERNEL $CR_KERNEL $CR_OUTZIP/floyd/$CR_VARIANT-kernel
+		if [ ! -e $CR_OUTZIP/floyd/$CR_VARIANT-kernel ]; then
+			echo "ERROR: bsdiff $CR_BASE_KERNEL $CR_KERNEL $CR_OUTZIP/floyd/$CR_VARIANT-kernel Failed!"
+			exit 0;
+		fi
+		bsdiff $CR_BASE_DTB $CR_DTB $CR_OUTZIP/floyd/$CR_VARIANT-dtb
+		if [ ! -e $CR_OUTZIP/floyd/$CR_VARIANT-kernel ]; then
+			echo "ERROR: bsdiff $CR_BASE_KERNEL $CR_DTB $CR_OUTZIP/floyd/$CR_VARIANT-dtb Failed!"
+			exit 0;
+		fi
+	fi
+fi
+if [ "$CR_TARGET" = "6" ]; then # Final kernel build
+	echo " Generating ZIP Package for $CR_NAME-$CR_VERSION-$CR_DATE"
+	sed -i "s/fkv/$zver/g" $CR_OUTZIP/META-INF/com/google/android/update-binary
+	cd $CR_OUTZIP && zip -r $CR_PRODUCT/$zver.zip * && cd $CR_DIR
+	du -k "$CR_PRODUCT/$zver.zip" | cut -f1 >sizdz
+	sizdz=$(head -n 1 sizdz)
+	rm -rf sizdz
+	echo " "
+	echo "----------------------------------------------"
+	echo "$CR_NAME kernel build finished."
+	echo "Compiled Package Size = $sizdz Kb"
+	echo "$CR_NAME-$CR_VERSION-$CR_DATE.zip Ready"
+	echo "Press Any key to end the script"
+	echo "----------------------------------------------"
+fi
+}
+
 # Main Menu
 clear
 echo "----------------------------------------------"
 echo "$CR_NAME $CR_VERSION Build Script $CR_DATE"
 echo " "
 echo " "
-echo "1) herolte" "2) hero2lte" "3) gracerlte" "4) gracelte" "5) All" "6) Abort" 
+echo "1) herolte" "2) hero2lte" "3) gracerlte" "4) gracelte" 
+echo  " "
+echo "5) Build All/ZIP"               "6) Abort"
 echo "----------------------------------------------"
 read -p "Please select your build target (1-6) > " CR_TARGET
-if [ "$CR_TARGET" = "6" ]; then
-echo "Build Aborted"
-exit
-fi
 echo " "
 echo "1) OneUI-Q" "2) OneUI-P"
 read -p "Please select your build Variant (1-2) > " CR_VAR
@@ -419,10 +504,18 @@ echo "1) Selinux Permissive " "2) Selinux Enforcing"
 echo " "
 read -p "Please select your SElinux mode (1-2) > " CR_SELINUX
 echo " "
+if [ "$CR_TARGET" = "6" ]; then
+echo "Build Aborted"
+exit
+fi
+echo " "
 read -p "Clean Builds? (y/n) > " CR_CLEAN
 echo " "
 # Call functions
 if [ "$CR_TARGET" = "5" ]; then
+echo " "
+read -p "Build Flashable ZIP ? (y/n) > " CR_MKZIP
+echo " "
 BUILD_ALL
 else
 BUILD
