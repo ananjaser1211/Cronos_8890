@@ -126,6 +126,7 @@ if [ $CR_CLEAN = "y" ]; then
      echo " Cleaning build dir"
      $compile clean && $compile mrproper
      rm -r -f $CR_DTB
+     rm -r -f $CR_KERNEL
      rm -rf $CR_DTS/.*.tmp
      rm -rf $CR_DTS/.*.cmd
      rm -rf $CR_DTS/*.dtb
@@ -138,6 +139,7 @@ if [ $CR_CLEAN = "n" ]; then
      echo " "
      echo " Skip Full cleaning"
      rm -r -f $CR_DTB
+     rm -r -f $CR_KERNEL
      rm -rf $CR_DTS/.*.tmp
      rm -rf $CR_DTS/.*.cmd
      rm -rf $CR_DTS/*.dtb
