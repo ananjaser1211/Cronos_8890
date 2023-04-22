@@ -409,8 +409,8 @@ echo "----------------------------------------------"
 echo " Packing ZIP "
 
 # Variables
-CR_BASE_KERNEL=$CR_OUTZIP/floyd/G960F-kernel
-CR_BASE_DTB=$CR_OUTZIP/floyd/G960F-dtb
+CR_BASE_KERNEL=$CR_OUTZIP/floyd/G930X-kernel
+CR_BASE_DTB=$CR_OUTZIP/floyd/G930X-dtb
 
 # Check packages
 if ! dpkg-query -W -f='${Status}' bsdiff  | grep "ok installed"; then 
