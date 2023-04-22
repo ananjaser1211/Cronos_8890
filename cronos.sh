@@ -35,7 +35,7 @@ CR_KERNEL=$CR_DIR/arch/arm64/boot/Image
 # Compiled dtb by dtbtool
 CR_DTB=$CR_DIR/boot.img-dtb
 # Kernel Name and Version
-CR_VERSION=V7.0
+CR_VERSION=V8.0
 CR_NAME=CronosKernel
 # Thread count
 CR_JOBS=$(nproc --all)
@@ -72,7 +72,7 @@ CR_CONFIG_SPLIT=NULL
 CR_CONFIG_CRONOS=cronos_defconfig
 # Default Config status
 CR_ROOT="0"
-CR_PERMISSIVE="0"
+CR_SELINUX="1"
 CR_HALLIC="0"
 CR_BOMB="0"
 # Compiler Paths
@@ -185,9 +185,10 @@ BUILD_GENERATE_CONFIG()
   echo " Copy $CR_CONFIG_CRONOS "
   cat $CR_DIR/arch/$CR_ARCH/configs/$CR_CONFIG_CRONOS >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   # Selinux Never Enforce all targets
-  if [ $CR_PERMISSIVE = "1" ]; then
+  if [ $CR_SELINUX = "1" ]; then
     echo " Building Permissive Kernel"
     echo "CONFIG_ALWAYS_PERMISSIVE=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+    CR_IMAGE_NAME=$CR_IMAGE_NAME-Permissive
   fi
   # Invert HALIC Readout when targeting OneUI Q
   if [ $CR_HALLIC = "1" ]; then
@@ -307,7 +308,6 @@ BUILD_VAR(){
 		CR_VARIANT=$CR_VARIANT-Q
 		CR_DTB_MOUNT=$CR_DTS_ONEUI
 		CR_RAMDISK=$CR_RAMDISK_Q
-		CR_PERMISSIVE="0"
 		CR_HALLIC="1"
 	fi
 	if [ $CR_VAR = "2" ]; then
@@ -315,7 +315,6 @@ BUILD_VAR(){
 		CR_CONFIG_VAR=$CR_CONFIG_ONEUI
 		CR_VARIANT=$CR_VARIANT-P
 		CR_DTB_MOUNT=$CR_DTS_ONEUI
-		CR_PERMISSIVE="1"
 	fi
 	if [ $CR_VAR = "3" ]; then
 		echo " Building $CR_VARIANT AOSP-Treble variant "
@@ -323,7 +322,6 @@ BUILD_VAR(){
 		CR_VARIANT=$CR_VARIANT-Treble
 		CR_DTB_MOUNT=$CR_DTS_TREBLE
 		CR_RAMDISK=$CR_RAMDISK_Q
-		CR_PERMISSIVE="1"
 	fi
 	if [ $CR_VAR = "4" ]; then
 		echo " Building $CR_VARIANT Oneui-Treble variant "
@@ -331,7 +329,6 @@ BUILD_VAR(){
 		CR_VARIANT=$CR_VARIANT-TrebleTW
 		CR_DTB_MOUNT=$CR_DTS_TREBLE
 		CR_RAMDISK=$CR_RAMDISK_Q
-		CR_PERMISSIVE="1"
 	fi
 }
 
@@ -412,6 +409,11 @@ echo "4) $CR_GCC12 (GCC 12.x)"
 echo "5) $CR_CLANG (CLANG)" 
 echo " "
 read -p "Please select your compiler (1-5) > " CR_COMPILER
+echo " "
+echo "1) Selinux Permissive " "2) Selinux Enforcing"
+echo " "
+read -p "Please select your SElinux mode (1-2) > " CR_SELINUX
+echo " "
 read -p "Clean Builds? (y/n) > " CR_CLEAN
 echo " "
 # Call functions
