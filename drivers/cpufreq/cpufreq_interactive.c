@@ -19,6 +19,7 @@
 #include <linux/cpu.h>
 #include <linux/cpumask.h>
 #include <linux/cpufreq.h>
+#include <linux/ipa.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/rwsem.h>
@@ -31,13 +32,13 @@
 #include <linux/kthread.h>
 #include <linux/slab.h>
 #include <linux/pm_qos.h>
-#include <linux/cpu_pm.h>
 
-#include <soc/samsung/pmu_func.h>
+#ifdef CONFIG_ARM_EXYNOS_MP_CPUFREQ
+#include <soc/samsung/cpufreq.h>
+#endif
 
 #ifdef CONFIG_CPU_THERMAL_IPA
 #include "cpu_load_metric.h"
-#include <linux/ipa.h>
 #endif
 
 #define CREATE_TRACE_POINTS
@@ -65,8 +66,6 @@ struct cpufreq_interactive_cpuinfo {
 	u64 loc_hispeed_val_time; /* per-cpu hispeed_validate_time */
 	struct rw_semaphore enable_sem;
 	int governor_enabled;
-	u64 delta_idle;
-	struct pmu_count_value pdata;
 };
 
 static DEFINE_PER_CPU(struct cpufreq_interactive_cpuinfo, cpuinfo);
@@ -97,8 +96,11 @@ struct cpufreq_interactive_tunables {
 	int usage_count;
 	/* Hi speed to bump to from lo speed when load burst (default max) */
 	unsigned int hispeed_freq;
+#if defined(CONFIG_EXYNOS_DUAL_GOV_PARAMS_SUPPORT)
+	unsigned int hispeed_freq_2nd;
+#endif
 	/* Go to hi speed when CPU load at or above this value. */
-#define DEFAULT_GO_HISPEED_LOAD 97
+#define DEFAULT_GO_HISPEED_LOAD 99
 	unsigned long go_hispeed_load;
 	/* Target load. Lower values result in higher CPU speeds. */
 	spinlock_t target_loads_lock;
@@ -108,7 +110,7 @@ struct cpufreq_interactive_tunables {
 	 * The minimum amount of time to spend at a frequency before we can ramp
 	 * down.
 	 */
-#define DEFAULT_MIN_SAMPLE_TIME (50 * USEC_PER_MSEC)
+#define DEFAULT_MIN_SAMPLE_TIME (80 * USEC_PER_MSEC)
 	unsigned long min_sample_time;
 	/*
 	 * The sample rate of the timer used to increase frequency
@@ -138,9 +140,9 @@ struct cpufreq_interactive_tunables {
 
 	/* handle for get cpufreq_policy */
 	unsigned int *policy;
-#ifdef CONFIG_EXYNOS_WD_DVFS
-#define DEFAULT_WD_BOUNDARY 1600
-	u32 wd_boundary;
+
+#if defined(CONFIG_EXYNOS_DUAL_GOV_PARAMS_SUPPORT)
+	int mode_idx;
 #endif
 
 #ifdef CONFIG_DYNAMIC_MODE_SUPPORT
@@ -169,6 +171,24 @@ struct cpufreq_interactive_tunables {
 static struct cpufreq_interactive_tunables *common_tunables;
 static struct cpufreq_interactive_tunables *tuned_parameters[NR_CPUS] = {NULL, };
 
+#if defined(CONFIG_EXYNOS_DUAL_GOV_PARAMS_SUPPORT)
+enum exynos_fb_modes {
+	 DUAL_MODE,
+	 QUAD_MODE,
+	 NR_MODE,
+};
+
+static struct cpufreq_interactive_tunables *exynos_fb_param[NR_MODE] = {NULL, };
+static struct kobject *exynos_fb_kobj[NR_MODE] = {NULL, };
+static struct cpufreq_policy *exynos_fb_policy;
+
+static DEFINE_SPINLOCK(exynos_fb_lock);
+static DECLARE_RWSEM(exynos_fb_rwsem);
+
+static int exynos_fb_kobject_create(struct cpufreq_policy *policy);
+static void exynos_fb_kobject_remove(void);
+#endif
+
 static struct attribute_group *get_sysfs_attr(void);
 
 static void cpufreq_interactive_timer_resched(
@@ -185,7 +205,6 @@ static void cpufreq_interactive_timer_resched(
 				  &pcpu->time_in_idle_timestamp,
 				  tunables->io_is_busy);
 	pcpu->cputime_speedadj = 0;
-	pcpu->delta_idle = 0;
 	pcpu->cputime_speedadj_timestamp = pcpu->time_in_idle_timestamp;
 	expires = jiffies + usecs_to_jiffies(tunables->timer_rate);
 	mod_timer_pinned(&pcpu->cpu_timer, expires);
@@ -225,7 +244,6 @@ static void cpufreq_interactive_timer_start(
 		get_cpu_idle_time(cpu, &pcpu->time_in_idle_timestamp,
 				  tunables->io_is_busy);
 	pcpu->cputime_speedadj = 0;
-	pcpu->delta_idle = 0;
 	pcpu->cputime_speedadj_timestamp = pcpu->time_in_idle_timestamp;
 	spin_unlock_irqrestore(&pcpu->load_lock, flags);
 }
@@ -364,13 +382,13 @@ static u64 update_load(int cpu)
 		pcpu->policy->governor_data;
 	u64 now;
 	u64 now_idle;
-	unsigned int delta_idle;
-	unsigned int delta_time;
+	u64 delta_idle;
+	u64 delta_time;
 	u64 active_time;
 
 	now_idle = get_cpu_idle_time(cpu, &now, tunables->io_is_busy);
-	delta_idle = (unsigned int)(now_idle - pcpu->time_in_idle);
-	delta_time = (unsigned int)(now - pcpu->time_in_idle_timestamp);
+	delta_idle = (now_idle - pcpu->time_in_idle);
+	delta_time = (now - pcpu->time_in_idle_timestamp);
 
 	if (delta_time <= delta_idle)
 		active_time = 0;
@@ -378,7 +396,6 @@ static u64 update_load(int cpu)
 		active_time = delta_time - delta_idle;
 
 	pcpu->cputime_speedadj += active_time * pcpu->policy->cur;
-	pcpu->delta_idle += delta_idle;
 
 #ifdef CONFIG_CPU_THERMAL_IPA
 	update_cpu_metric(cpu, now, delta_idle, delta_time, pcpu->policy);
@@ -434,11 +451,11 @@ static void enter_mode(struct cpufreq_interactive_tunables * tunables)
 
 	if(!hmp_boost && (tunables->mode & PERF_MODE)) {
 		//pr_debug("%s mp boost on", __func__);
-		//(void)set_hmp_boost(1);
+		(void)set_hmp_boost(1);
 		hmp_boost = true;
 	}else if(hmp_boost && (tunables->mode & SLOW_MODE)){
 		//pr_debug("%s mp boost off", __func__);
-		//(void)set_hmp_boost(0);
+		(void)set_hmp_boost(0);
 		hmp_boost = false;
 	}
 }
@@ -450,7 +467,7 @@ static void exit_mode(struct cpufreq_interactive_tunables * tunables)
 
 	if(hmp_boost) {
 		//pr_debug("%s mp boost off", __func__);
-		//(void)set_hmp_boost(0);
+		(void)set_hmp_boost(0);
 		hmp_boost = false;
 	}
 }
@@ -458,11 +475,6 @@ static void exit_mode(struct cpufreq_interactive_tunables * tunables)
 
 static void cpufreq_interactive_timer(unsigned long data)
 {
-#ifdef CONFIG_EXYNOS_WD_DVFS
-	u64 cpki;
-	u64 core = 1;
-	u64 mem = 0;
-#endif
 	u64 now;
 	unsigned int delta_time;
 	u64 cputime_speedadj;
@@ -481,20 +493,6 @@ static void cpufreq_interactive_timer(unsigned long data)
 		return;
 	if (!pcpu->governor_enabled)
 		goto exit;
-
-#ifdef CONFIG_EXYNOS_WD_DVFS
-	stop_counter_cpu();
-	read_pmu_one(&pcpu->pdata);
-	cpki = ((u64)pcpu->pdata.pmnc0 << 10) / (pcpu->pdata.pmnc1 + 1) + 1;
-	reset_pmu_one(&pcpu->pdata);
-	start_counter_cpu();
-	if (cpki < tunables->wd_boundary) {
-		core = cpki;
-	} else {
-		core = tunables->wd_boundary;
-		mem = cpki - tunables->wd_boundary;
-	}
-#endif
 
 	spin_lock_irqsave(&pcpu->load_lock, flags);
 	now = update_load(data);
@@ -517,11 +515,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 #endif
 
 	spin_lock_irqsave(&pcpu->target_freq_lock, flags);
-#ifdef CONFIG_EXYNOS_WD_DVFS
-	do_div(cputime_speedadj, delta_time + mem * pcpu->delta_idle / core);
-#else
 	do_div(cputime_speedadj, delta_time);
-#endif
 	loadadjfreq = (unsigned int)cputime_speedadj * 100;
 	cpu_load = loadadjfreq / pcpu->policy->cur;
 	tunables->boosted = tunables->boost_val || now < tunables->boostpulse_endtime;
@@ -561,6 +555,26 @@ static void cpufreq_interactive_timer(unsigned long data)
 		spin_unlock_irqrestore(&pcpu->target_freq_lock, flags);
 		goto target_update;
 	}
+
+#if defined(CONFIG_EXYNOS_DUAL_GOV_PARAMS_SUPPORT)
+	/*
+	 * In case of dual mode, during above_hispeed_delay time corresponding
+	 * with hispeed_freq_2nd, do not scale higher than hispeed_freq_2nd for
+	 * power consumption.
+	 */
+	if (tunables->hispeed_freq_2nd &&
+			new_freq > tunables->hispeed_freq_2nd) {
+		if (pcpu->policy->cur == tunables->hispeed_freq_2nd &&
+			now - pcpu->pol_hispeed_val_time <
+			freq_to_above_hispeed_delay(tunables, pcpu->policy->cur)) {
+			spin_unlock_irqrestore(&pcpu->target_freq_lock, flags);
+			goto rearm;
+		}
+
+		if (pcpu->policy->cur < tunables->hispeed_freq_2nd)
+			new_freq = tunables->hispeed_freq_2nd;
+	}
+#endif
 
 	pcpu->loc_hispeed_val_time = now;
 
@@ -652,62 +666,6 @@ static void cpufreq_interactive_idle_end(void)
 	up_read(&pcpu->enable_sem);
 }
 
-static void cpufreq_interactive_get_policy_info(struct cpufreq_policy *policy,
-						unsigned int *pmax_freq,
-						u64 *phvt, u64 *pfvt)
-{
-	struct cpufreq_interactive_cpuinfo *pcpu;
-	unsigned int max_freq = 0;
-	u64 hvt = ~0ULL, fvt = 0;
-	unsigned int i;
-
-	for_each_cpu(i, policy->cpus) {
-		pcpu = &per_cpu(cpuinfo, i);
-
-		fvt = max(fvt, pcpu->loc_floor_val_time);
-		if (pcpu->target_freq > max_freq) {
-			max_freq = pcpu->target_freq;
-			hvt = pcpu->loc_hispeed_val_time;
-		} else if (pcpu->target_freq == max_freq) {
-			hvt = min(hvt, pcpu->loc_hispeed_val_time);
-		}
-	}
-
-	*pmax_freq = max_freq;
-	*phvt = hvt;
-	*pfvt = fvt;
-}
-
-static void cpufreq_interactive_adjust_cpu(unsigned int cpu,
-					   struct cpufreq_policy *policy)
-{
-	struct cpufreq_interactive_cpuinfo *pcpu;
-	u64 hvt, fvt;
-	unsigned int max_freq;
-	int i;
-
-	cpufreq_interactive_get_policy_info(policy, &max_freq, &hvt, &fvt);
-
-	for_each_cpu(i, policy->cpus) {
-		pcpu = &per_cpu(cpuinfo, i);
-		pcpu->pol_floor_val_time = fvt;
-	}
-
-	if (max_freq != policy->cur) {
-		__cpufreq_driver_target(policy, max_freq, CPUFREQ_RELATION_H);
-		for_each_cpu(i, policy->cpus) {
-			pcpu = &per_cpu(cpuinfo, i);
-			pcpu->pol_hispeed_val_time = hvt;
-		}
-	}
-
-#if defined(CONFIG_CPU_THERMAL_IPA)
-			ipa_cpufreq_requested(pcpu->policy, max_freq);
-#endif
-
-	trace_cpufreq_interactive_setspeed(cpu, max_freq, policy->cur);
-}
-
 static int cpufreq_interactive_speedchange_task(void *data)
 {
 	unsigned int cpu;
@@ -737,18 +695,53 @@ static int cpufreq_interactive_speedchange_task(void *data)
 		spin_unlock_irqrestore(&speedchange_cpumask_lock, flags);
 
 		for_each_cpu(cpu, &tmp_mask) {
+			unsigned int j;
+			unsigned int max_freq = 0;
+			struct cpufreq_interactive_cpuinfo *pjcpu;
+			u64 hvt = ~0ULL, fvt = 0;
+
 			pcpu = &per_cpu(cpuinfo, cpu);
-
-			down_write(&pcpu->policy->rwsem);
-
-			if (likely(down_read_trylock(&pcpu->enable_sem))) {
-				if (likely(pcpu->governor_enabled))
-					cpufreq_interactive_adjust_cpu(cpu,
-							pcpu->policy);
+			if (!down_read_trylock(&pcpu->enable_sem))
+				continue;
+			if (!pcpu->governor_enabled) {
 				up_read(&pcpu->enable_sem);
+				continue;
 			}
 
-			up_write(&pcpu->policy->rwsem);
+			for_each_cpu(j, pcpu->policy->cpus) {
+				pjcpu = &per_cpu(cpuinfo, j);
+
+				fvt = max(fvt, pjcpu->loc_floor_val_time);
+				if (pjcpu->target_freq > max_freq) {
+					max_freq = pjcpu->target_freq;
+					hvt = pjcpu->loc_hispeed_val_time;
+				} else if (pjcpu->target_freq == max_freq) {
+					hvt = min(hvt, pjcpu->loc_hispeed_val_time);
+				}
+			}
+			for_each_cpu(j, pcpu->policy->cpus) {
+				pjcpu = &per_cpu(cpuinfo, j);
+				pjcpu->pol_floor_val_time = fvt;
+			}
+
+			if (max_freq != pcpu->policy->cur) {
+				__cpufreq_driver_target(pcpu->policy,
+							max_freq,
+							CPUFREQ_RELATION_H);
+				for_each_cpu(j, pcpu->policy->cpus) {
+					pjcpu = &per_cpu(cpuinfo, j);
+					pjcpu->pol_hispeed_val_time = hvt;
+				}
+			}
+
+#if defined(CONFIG_CPU_THERMAL_IPA)
+			ipa_cpufreq_requested(pcpu->policy, max_freq);
+#endif
+			trace_cpufreq_interactive_setspeed(cpu,
+						     pcpu->target_freq,
+						     pcpu->policy->cur);
+
+			up_read(&pcpu->enable_sem);
 		}
 	}
 
@@ -776,19 +769,8 @@ static void cpufreq_interactive_boost(struct cpufreq_interactive_tunables *tunab
 
 	for_each_cpu(i, &boost_mask) {
 		pcpu = &per_cpu(cpuinfo, i);
-
-		if (!down_read_trylock(&pcpu->enable_sem))
+		if (tunables != pcpu->policy->governor_data)
 			continue;
-
-		if (!pcpu->governor_enabled) {
-			up_read(&pcpu->enable_sem);
-			continue;
-		}
-
-		if (tunables != pcpu->policy->governor_data) {
-			up_read(&pcpu->enable_sem);
-			continue;
-		}
 
 		spin_lock_irqsave(&pcpu->target_freq_lock, flags[1]);
 		if (pcpu->target_freq < tunables->hispeed_freq) {
@@ -799,8 +781,6 @@ static void cpufreq_interactive_boost(struct cpufreq_interactive_tunables *tunab
 			anyboost = 1;
 		}
 		spin_unlock_irqrestore(&pcpu->target_freq_lock, flags[1]);
-
-		up_read(&pcpu->enable_sem);
 	}
 
 	spin_unlock_irqrestore(&speedchange_cpumask_lock, flags[0]);
@@ -1030,6 +1010,13 @@ static ssize_t store_above_hispeed_delay(
 	tunables->nabove_hispeed_delay = ntokens;
 #endif
 	spin_unlock_irqrestore(&tunables->above_hispeed_delay_lock, flags);
+
+#ifdef CONFIG_DYNAMIC_MODE_SUPPORT
+	spin_lock_irqsave(&tunables->mode_lock, flags_idx);
+	set_new_param_set(tunables->mode, tunables);
+	spin_unlock_irqrestore(&tunables->mode_lock, flags_idx);
+#endif /* CONFIG_DYNAMIC_MODE_SUPPORT */
+
 	return count;
 
 }
@@ -1113,27 +1100,6 @@ static ssize_t store_go_hispeed_load(struct cpufreq_interactive_tunables
 
 	return count;
 }
-
-#ifdef CONFIG_EXYNOS_WD_DVFS
-static ssize_t show_wd_boundary(struct cpufreq_interactive_tunables
-		*tunables, char *buf)
-{
-	return sprintf(buf, "%u\n", tunables->wd_boundary);
-}
-
-static ssize_t store_wd_boundary(struct cpufreq_interactive_tunables
-		*tunables, const char *buf, size_t count)
-{
-	int ret;
-	unsigned long val;
-
-	ret = kstrtoul(buf, 0, &val);
-	if (ret < 0)
-		return ret;
-	tunables->wd_boundary = val;
-	return count;
-}
-#endif
 
 static ssize_t show_min_sample_time(struct cpufreq_interactive_tunables
 		*tunables, char *buf)
@@ -1323,7 +1289,7 @@ static ssize_t store_param_index(struct cpufreq_interactive_tunables
 	long unsigned int val;
 	unsigned long flags;
 
-	ret = kstrtoul(buf, 0, &val);
+	ret = strict_strtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
 
@@ -1386,9 +1352,6 @@ show_store_gov_pol_sys(boost);
 store_gov_pol_sys(boostpulse);
 show_store_gov_pol_sys(boostpulse_duration);
 show_store_gov_pol_sys(io_is_busy);
-#ifdef CONFIG_EXYNOS_WD_DVFS
-show_store_gov_pol_sys(wd_boundary);
-#endif
 #ifdef CONFIG_DYNAMIC_MODE_SUPPORT
 show_store_gov_pol_sys(mode);
 show_store_gov_pol_sys(param_index);
@@ -1416,9 +1379,6 @@ gov_sys_pol_attr_rw(timer_slack);
 gov_sys_pol_attr_rw(boost);
 gov_sys_pol_attr_rw(boostpulse_duration);
 gov_sys_pol_attr_rw(io_is_busy);
-#ifdef CONFIG_EXYNOS_WD_DVFS
-gov_sys_pol_attr_rw(wd_boundary);
-#endif
 #ifdef CONFIG_DYNAMIC_MODE_SUPPORT
 gov_sys_pol_attr_rw(mode);
 gov_sys_pol_attr_rw(param_index);
@@ -1443,9 +1403,6 @@ static struct attribute *interactive_attributes_gov_sys[] = {
 	&boostpulse_gov_sys.attr,
 	&boostpulse_duration_gov_sys.attr,
 	&io_is_busy_gov_sys.attr,
-#ifdef CONFIG_EXYNOS_WD_DVFS
-	&wd_boundary_gov_sys.attr,
-#endif
 #ifdef CONFIG_DYNAMIC_MODE_SUPPORT
 	&mode_gov_sys.attr,
 	&param_index_gov_sys.attr,
@@ -1457,6 +1414,1053 @@ static struct attribute_group interactive_attr_group_gov_sys = {
 	.attrs = interactive_attributes_gov_sys,
 	.name = "interactive",
 };
+
+#if defined(CONFIG_EXYNOS_DUAL_GOV_PARAMS_SUPPORT)
+static ssize_t show_exynos_fb_target_loads_dual(
+	struct cpufreq_policy *policy, char *buf)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	unsigned long flags;
+	ssize_t ret = 0;
+	int i;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	for (i = 0; i < exynos_fb_tunables->ntarget_loads; i++)
+		ret += sprintf(buf + ret, "%u%s",
+			       exynos_fb_tunables->target_loads[i],
+			       i & 0x1 ? ":" : " ");
+
+	sprintf(buf + ret - 1, "\n");
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return ret;
+}
+
+static ssize_t show_exynos_fb_target_loads_quad(
+	struct cpufreq_policy *policy, char *buf)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	unsigned long flags;
+	ssize_t ret = 0;
+	int i;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	for (i = 0; i < exynos_fb_tunables->ntarget_loads; i++)
+		ret += sprintf(buf + ret, "%u%s",
+			       exynos_fb_tunables->target_loads[i],
+			       i & 0x1 ? ":" : " ");
+
+	sprintf(buf + ret - 1, "\n");
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return ret;
+}
+
+static ssize_t store_exynos_fb_target_loads_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned int *new_target_loads = NULL;
+	unsigned long flags;
+	int ntokens;
+
+	new_target_loads = get_tokenized_data(buf, &ntokens);
+	if (IS_ERR(new_target_loads))
+		return PTR_RET(new_target_loads);
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+
+	if (exynos_fb_tunables->target_loads != default_target_loads)
+		kfree(exynos_fb_tunables->target_loads);
+
+	exynos_fb_tunables->target_loads = new_target_loads;
+	exynos_fb_tunables->ntarget_loads = ntokens;
+
+	if (tunables->mode_idx == DUAL_MODE) {
+		tunables->target_loads = new_target_loads;
+		tunables->ntarget_loads = ntokens;
+	}
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_target_loads_quad(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned int *new_target_loads = NULL;
+	unsigned long flags;
+	int ntokens;
+
+	new_target_loads = get_tokenized_data(buf, &ntokens);
+	if (IS_ERR(new_target_loads))
+		return PTR_RET(new_target_loads);
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	if (exynos_fb_tunables->target_loads != default_target_loads)
+		kfree(exynos_fb_tunables->target_loads);
+
+	exynos_fb_tunables->target_loads = new_target_loads;
+	exynos_fb_tunables->ntarget_loads = ntokens;
+
+	if (tunables->mode_idx == QUAD_MODE) {
+		tunables->target_loads = new_target_loads;
+		tunables->ntarget_loads = ntokens;
+	}
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t show_exynos_fb_above_hispeed_delay_dual(
+	struct cpufreq_policy *policy, char *buf)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	unsigned long flags;
+	ssize_t ret = 0;
+	int i;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	for (i = 0; i < exynos_fb_tunables->nabove_hispeed_delay; i++)
+		ret += sprintf(buf + ret, "%u%s",
+			       exynos_fb_tunables->above_hispeed_delay[i],
+			       i & 0x1 ? ":" : " ");
+
+	sprintf(buf + ret - 1, "\n");
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return ret;
+}
+
+static ssize_t show_exynos_fb_above_hispeed_delay_quad(
+	struct cpufreq_policy *policy, char *buf)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	unsigned long flags;
+	ssize_t ret = 0;
+	int i;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	for (i = 0; i < exynos_fb_tunables->nabove_hispeed_delay; i++)
+		ret += sprintf(buf + ret, "%u%s",
+			       exynos_fb_tunables->above_hispeed_delay[i],
+			       i & 0x1 ? ":" : " ");
+
+	sprintf(buf + ret - 1, "\n");
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return ret;
+}
+
+static ssize_t store_exynos_fb_above_hispeed_delay_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned int *new_above_hispeed_delay = NULL;
+	unsigned long flags;
+	int ntokens;
+
+	new_above_hispeed_delay = get_tokenized_data(buf, &ntokens);
+	if (IS_ERR(new_above_hispeed_delay))
+		return PTR_RET(new_above_hispeed_delay);
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+
+	if (exynos_fb_tunables->above_hispeed_delay != default_above_hispeed_delay)
+		kfree(exynos_fb_tunables->above_hispeed_delay);
+
+	exynos_fb_tunables->above_hispeed_delay = new_above_hispeed_delay;
+	exynos_fb_tunables->nabove_hispeed_delay = ntokens;
+
+	if (tunables->mode_idx == DUAL_MODE) {
+		tunables->above_hispeed_delay = new_above_hispeed_delay;
+		tunables->nabove_hispeed_delay = ntokens;
+	}
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_above_hispeed_delay_quad(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned int *new_above_hispeed_delay = NULL;
+	unsigned long flags;
+	int ntokens;
+
+	new_above_hispeed_delay = get_tokenized_data(buf, &ntokens);
+	if (IS_ERR(new_above_hispeed_delay))
+		return PTR_RET(new_above_hispeed_delay);
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+
+	if (exynos_fb_tunables->above_hispeed_delay != default_above_hispeed_delay)
+		kfree(exynos_fb_tunables->above_hispeed_delay);
+
+	exynos_fb_tunables->above_hispeed_delay = new_above_hispeed_delay;
+	exynos_fb_tunables->nabove_hispeed_delay = ntokens;
+
+	if (tunables->mode_idx == QUAD_MODE) {
+		tunables->above_hispeed_delay = new_above_hispeed_delay;
+		tunables->nabove_hispeed_delay = ntokens;
+	}
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t show_exynos_fb_hispeed_freq_dual(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%u\n", exynos_fb_param[DUAL_MODE]->hispeed_freq);
+}
+
+static ssize_t show_exynos_fb_hispeed_freq_quad(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%u\n", exynos_fb_param[QUAD_MODE]->hispeed_freq);
+}
+
+static ssize_t show_exynos_fb_hispeed_freq_2nd_dual(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%u\n", exynos_fb_param[DUAL_MODE]->hispeed_freq_2nd);
+}
+
+static ssize_t store_exynos_fb_hispeed_freq_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	exynos_fb_tunables->hispeed_freq = val;
+
+	if (tunables->mode_idx == DUAL_MODE)
+		tunables->hispeed_freq = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_hispeed_freq_quad(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	exynos_fb_tunables->hispeed_freq = val;
+
+	if (tunables->mode_idx == QUAD_MODE)
+		tunables->hispeed_freq = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_hispeed_freq_2nd_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	exynos_fb_tunables->hispeed_freq_2nd = val;
+
+	if (tunables->mode_idx == DUAL_MODE)
+		tunables->hispeed_freq_2nd = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t show_exynos_fb_go_hispeed_load_dual(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%lu\n", exynos_fb_param[DUAL_MODE]->go_hispeed_load);
+}
+
+static ssize_t show_exynos_fb_go_hispeed_load_quad(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%lu\n", exynos_fb_param[QUAD_MODE]->go_hispeed_load);
+}
+
+static ssize_t store_exynos_fb_go_hispeed_load_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	exynos_fb_tunables->go_hispeed_load = val;
+
+	if (tunables->mode_idx == DUAL_MODE)
+		tunables->go_hispeed_load = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_go_hispeed_load_quad(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	exynos_fb_tunables->go_hispeed_load = val;
+
+	if (tunables->mode_idx == QUAD_MODE)
+		tunables->go_hispeed_load = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t show_exynos_fb_min_sample_time_dual(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%lu\n", exynos_fb_param[DUAL_MODE]->min_sample_time);
+}
+
+static ssize_t show_exynos_fb_min_sample_time_quad(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%lu\n", exynos_fb_param[QUAD_MODE]->min_sample_time);
+}
+
+static ssize_t store_exynos_fb_min_sample_time_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	exynos_fb_tunables->min_sample_time = val;
+
+	if (tunables->mode_idx == DUAL_MODE)
+		tunables->min_sample_time = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_min_sample_time_quad(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	exynos_fb_tunables->min_sample_time = val;
+
+	if (tunables->mode_idx == QUAD_MODE)
+		tunables->min_sample_time = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t show_exynos_fb_timer_rate_dual(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%lu\n", exynos_fb_param[DUAL_MODE]->timer_rate);;
+}
+
+static ssize_t show_exynos_fb_timer_rate_quad(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%lu\n", exynos_fb_param[QUAD_MODE]->timer_rate);;
+}
+
+static ssize_t store_exynos_fb_timer_rate_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val, val_round;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	val_round = jiffies_to_usecs(usecs_to_jiffies(val));
+	if (val != val_round)
+		pr_warn("timer_rate not aligned to jiffy. Rounded up to %lu\n",
+			val_round);
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	exynos_fb_tunables->timer_rate = val;
+
+	if (tunables->mode_idx == DUAL_MODE)
+		tunables->timer_rate = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_timer_rate_quad(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val, val_round;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	val_round = jiffies_to_usecs(usecs_to_jiffies(val));
+	if (val != val_round)
+		pr_warn("timer_rate not aligned to jiffy. Rounded up to %lu\n",
+			val_round);
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	exynos_fb_tunables->timer_rate = val;
+
+	if (tunables->mode_idx == QUAD_MODE)
+		tunables->timer_rate = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t show_exynos_fb_timer_slack_dual(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%d\n", exynos_fb_param[DUAL_MODE]->timer_slack_val);;
+}
+
+static ssize_t show_exynos_fb_timer_slack_quad(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%d\n", exynos_fb_param[QUAD_MODE]->timer_slack_val);;
+}
+
+static ssize_t store_exynos_fb_timer_slack_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 10, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	exynos_fb_tunables->timer_slack_val = val;
+
+	if (tunables->mode_idx == DUAL_MODE)
+		tunables->timer_slack_val = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_timer_slack_quad(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 10, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	exynos_fb_tunables->timer_slack_val = val;
+
+	if (tunables->mode_idx == QUAD_MODE)
+		tunables->timer_slack_val = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t show_exynos_fb_boost_dual(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%d\n", exynos_fb_param[DUAL_MODE]->boost_val);;
+}
+
+static ssize_t show_exynos_fb_boost_quad(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%d\n", exynos_fb_param[QUAD_MODE]->boost_val);;
+}
+
+static ssize_t store_exynos_fb_boost_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	exynos_fb_tunables->boost_val = val;
+
+	if (tunables->mode_idx == DUAL_MODE) {
+		tunables->boost_val = val;
+
+		if (tunables->boost_val) {
+			trace_cpufreq_interactive_boost("on");
+			if (!tunables->boosted)
+				cpufreq_interactive_boost(tunables);
+		} else {
+			tunables->boostpulse_endtime = ktime_to_us(ktime_get());
+			trace_cpufreq_interactive_unboost("off");
+		}
+	}
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_boost_quad(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	exynos_fb_tunables->boost_val = val;
+
+	if (tunables->mode_idx == QUAD_MODE) {
+		tunables->boost_val = val;
+
+		if (tunables->boost_val) {
+			trace_cpufreq_interactive_boost("on");
+			if (!tunables->boosted)
+				cpufreq_interactive_boost(tunables);
+		} else {
+			tunables->boostpulse_endtime = ktime_to_us(ktime_get());
+			trace_cpufreq_interactive_unboost("off");
+		}
+	}
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_boostpulse_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	exynos_fb_tunables->boostpulse_endtime = ktime_to_us(ktime_get()) +
+		exynos_fb_tunables->boostpulse_duration_val;
+
+	if (tunables->mode_idx == DUAL_MODE) {
+		tunables->boostpulse_endtime = ktime_to_us(ktime_get()) +
+					tunables->boostpulse_duration_val;
+
+		trace_cpufreq_interactive_boost("pulse");
+		if (!tunables->boosted)
+			cpufreq_interactive_boost(tunables);
+	}
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_boostpulse_quad(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	exynos_fb_tunables->boostpulse_endtime = ktime_to_us(ktime_get()) +
+		exynos_fb_tunables->boostpulse_duration_val;
+
+	if (tunables->mode_idx == QUAD_MODE) {
+		tunables->boostpulse_endtime = ktime_to_us(ktime_get()) +
+					tunables->boostpulse_duration_val;
+
+		trace_cpufreq_interactive_boost("pulse");
+		if (!tunables->boosted)
+			cpufreq_interactive_boost(tunables);
+	}
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+
+	return count;
+}
+
+static ssize_t show_exynos_fb_boostpulse_duration_dual(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%d\n", exynos_fb_param[DUAL_MODE]->boostpulse_duration_val);
+}
+
+static ssize_t show_exynos_fb_boostpulse_duration_quad(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%d\n", exynos_fb_param[DUAL_MODE]->boostpulse_duration_val);
+}
+
+static ssize_t store_exynos_fb_boostpulse_duration_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	exynos_fb_tunables->boostpulse_duration_val = val;
+
+	if (tunables->mode_idx == DUAL_MODE)
+		tunables->boostpulse_duration_val = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_boostpulse_duration_quad(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	exynos_fb_tunables->boostpulse_duration_val = val;
+
+	if (tunables->mode_idx == QUAD_MODE)
+		tunables->boostpulse_duration_val = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t show_exynos_fb_io_is_busy_dual(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%u\n", exynos_fb_param[DUAL_MODE]->io_is_busy);
+}
+
+static ssize_t show_exynos_fb_io_is_busy_quad(
+	struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%u\n", exynos_fb_param[QUAD_MODE]->io_is_busy);
+}
+
+static ssize_t store_exynos_fb_io_is_busy_dual(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[DUAL_MODE];
+	exynos_fb_tunables->io_is_busy = val;
+
+	if (tunables->mode_idx == DUAL_MODE)
+		tunables->io_is_busy = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+static ssize_t store_exynos_fb_io_is_busy_quad(
+	struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	struct cpufreq_interactive_tunables *exynos_fb_tunables;
+	struct cpufreq_interactive_tunables *tunables = policy->governor_data;
+	unsigned long flags;
+	long unsigned int val;
+	int ret;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	exynos_fb_tunables = exynos_fb_param[QUAD_MODE];
+	exynos_fb_tunables->io_is_busy = val;
+
+	if (tunables->mode_idx == QUAD_MODE)
+		tunables->io_is_busy = val;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+
+	return count;
+}
+
+#define exynos_fb_show_one(file_name)						\
+static ssize_t exynos_fb_show_##file_name					\
+(struct cpufreq_policy *policy, char *buf)					\
+{										\
+	return show_exynos_fb_##file_name(exynos_fb_policy, buf);		\
+}
+
+#define exynos_fb_store_one(file_name)						\
+static ssize_t exynos_fb_store_##file_name					\
+(struct cpufreq_policy *policy, const char *buf, size_t count)			\
+{										\
+	return store_exynos_fb_##file_name(exynos_fb_policy, buf, count);	\
+}
+
+#define exynos_fb_show_store(file_name)						\
+	exynos_fb_show_one(file_name);						\
+	exynos_fb_store_one(file_name)
+
+exynos_fb_show_store(target_loads_dual);
+exynos_fb_show_store(above_hispeed_delay_dual);
+exynos_fb_show_store(hispeed_freq_dual);
+exynos_fb_show_store(hispeed_freq_2nd_dual);
+exynos_fb_show_store(go_hispeed_load_dual);
+exynos_fb_show_store(min_sample_time_dual);
+exynos_fb_show_store(timer_rate_dual);
+exynos_fb_show_store(timer_slack_dual);
+exynos_fb_show_store(boost_dual);
+exynos_fb_store_one(boostpulse_dual);
+exynos_fb_show_store(boostpulse_duration_dual);
+exynos_fb_show_store(io_is_busy_dual);
+
+exynos_fb_show_store(target_loads_quad);
+exynos_fb_show_store(above_hispeed_delay_quad);
+exynos_fb_show_store(hispeed_freq_quad);
+exynos_fb_show_store(go_hispeed_load_quad);
+exynos_fb_show_store(min_sample_time_quad);
+exynos_fb_show_store(timer_rate_quad);
+exynos_fb_show_store(timer_slack_quad);
+exynos_fb_show_store(boost_quad);
+exynos_fb_store_one(boostpulse_quad);
+exynos_fb_show_store(boostpulse_duration_quad);
+exynos_fb_show_store(io_is_busy_quad);
+
+#define exynos_fb_attr_rw_dual(file_name)						\
+static struct freq_attr file_name##_dual =						\
+__ATTR(file_name, 0644, exynos_fb_show_##file_name##_dual,				\
+		    exynos_fb_store_##file_name##_dual)
+
+#define exynos_fb_attr_rw_quad(file_name)						\
+static struct freq_attr file_name##_quad =						\
+__ATTR(file_name, 0644, exynos_fb_show_##file_name##_quad,				\
+		    exynos_fb_store_##file_name##_quad)
+
+exynos_fb_attr_rw_dual(target_loads);
+exynos_fb_attr_rw_dual(above_hispeed_delay);
+exynos_fb_attr_rw_dual(hispeed_freq);
+exynos_fb_attr_rw_dual(hispeed_freq_2nd);
+exynos_fb_attr_rw_dual(go_hispeed_load);
+exynos_fb_attr_rw_dual(min_sample_time);
+exynos_fb_attr_rw_dual(timer_rate);
+exynos_fb_attr_rw_dual(timer_slack);
+exynos_fb_attr_rw_dual(boost);
+exynos_fb_attr_rw_dual(boostpulse_duration);
+exynos_fb_attr_rw_dual(io_is_busy);
+
+exynos_fb_attr_rw_quad(target_loads);
+exynos_fb_attr_rw_quad(above_hispeed_delay);
+exynos_fb_attr_rw_quad(hispeed_freq);
+exynos_fb_attr_rw_quad(go_hispeed_load);
+exynos_fb_attr_rw_quad(min_sample_time);
+exynos_fb_attr_rw_quad(timer_rate);
+exynos_fb_attr_rw_quad(timer_slack);
+exynos_fb_attr_rw_quad(boost);
+exynos_fb_attr_rw_quad(boostpulse_duration);
+exynos_fb_attr_rw_quad(io_is_busy);
+
+static struct freq_attr boostpulse_dual =
+	__ATTR(boostpulse, 0200, NULL, exynos_fb_store_boostpulse_dual);
+
+static struct freq_attr boostpulse_quad =
+	__ATTR(boostpulse, 0200, NULL, exynos_fb_store_boostpulse_quad);
+
+static struct attribute *exynos_fb_dual_attrs[] = {
+	&target_loads_dual.attr,
+	&above_hispeed_delay_dual.attr,
+	&hispeed_freq_dual.attr,
+	&hispeed_freq_2nd_dual.attr,
+	&go_hispeed_load_dual.attr,
+	&min_sample_time_dual.attr,
+	&timer_rate_dual.attr,
+	&timer_slack_dual.attr,
+	&boost_dual.attr,
+	&boostpulse_dual.attr,
+	&boostpulse_duration_dual.attr,
+	&io_is_busy_dual.attr,
+	NULL
+};
+
+static struct attribute *exynos_fb_quad_attrs[] = {
+	&target_loads_quad.attr,
+	&above_hispeed_delay_quad.attr,
+	&hispeed_freq_quad.attr,
+	&go_hispeed_load_quad.attr,
+	&min_sample_time_quad.attr,
+	&timer_rate_quad.attr,
+	&timer_slack_quad.attr,
+	&boost_quad.attr,
+	&boostpulse_quad.attr,
+	&boostpulse_duration_quad.attr,
+	&io_is_busy_quad.attr,
+	NULL
+};
+
+#define to_attr(a) container_of(a, struct freq_attr, attr)
+static ssize_t exynos_fb_show(struct kobject *kobj, struct attribute *attr, char *buf)
+{
+	struct cpufreq_policy *policy = exynos_fb_policy;
+	struct freq_attr *fattr = to_attr(attr);
+	ssize_t ret;
+
+	if (!down_read_trylock(&exynos_fb_rwsem))
+		return -EINVAL;
+
+	down_read(&policy->rwsem);
+
+	if (fattr->show)
+		ret = fattr->show(policy, buf);
+	else
+		ret = -EIO;
+
+	up_read(&policy->rwsem);
+	up_read(&exynos_fb_rwsem);
+
+	return ret;
+}
+
+static ssize_t exynos_fb_store(struct kobject *kobj, struct attribute *attr,
+		     const char *buf, size_t count)
+{
+	struct cpufreq_policy *policy = exynos_fb_policy;
+	struct freq_attr *fattr = to_attr(attr);
+	ssize_t ret = -EINVAL;
+
+	get_online_cpus();
+
+	if (!cpu_online(policy->cpu))
+		goto unlock;
+
+	if (!down_read_trylock(&exynos_fb_rwsem))
+		goto unlock;
+
+	down_write(&policy->rwsem);
+
+	if (fattr->store)
+		ret = fattr->store(policy, buf, count);
+	else
+		ret = -EIO;
+
+	up_write(&policy->rwsem);
+
+	up_read(&exynos_fb_rwsem);
+unlock:
+	put_online_cpus();
+
+	return ret;
+}
+static const struct sysfs_ops exynos_fb_sysfs_ops = {
+	.show = exynos_fb_show,
+	.store = exynos_fb_store,
+};
+
+static struct kobj_type exynos_fb_ktype_dual = {
+	.sysfs_ops = &exynos_fb_sysfs_ops,
+	.default_attrs = exynos_fb_dual_attrs,
+};
+
+static struct kobj_type exynos_fb_ktype_quad = {
+	.sysfs_ops = &exynos_fb_sysfs_ops,
+	.default_attrs = exynos_fb_quad_attrs,
+};
+#endif
 
 /* Per policy governor instance */
 static struct attribute *interactive_attributes_gov_pol[] = {
@@ -1471,9 +2475,6 @@ static struct attribute *interactive_attributes_gov_pol[] = {
 	&boostpulse_gov_pol.attr,
 	&boostpulse_duration_gov_pol.attr,
 	&io_is_busy_gov_pol.attr,
-#ifdef CONFIG_EXYNOS_WD_DVFS
-	&wd_boundary_gov_pol.attr,
-#endif
 #ifdef CONFIG_DYNAMIC_MODE_SUPPORT
 	&mode_gov_pol.attr,
 	&param_index_gov_pol.attr,
@@ -1525,38 +2526,6 @@ static void cpufreq_param_set_init(struct cpufreq_interactive_tunables *tunables
 }
 #endif
 
-#ifdef CONFIG_EXYNOS_WD_DVFS
-static int exynos_cpu_pm_notifier(struct notifier_block *self,
-				  unsigned long cmd, void *v)
-{
-	int cpu = smp_processor_id();
-	struct cpufreq_interactive_cpuinfo *pcpu =
-		&per_cpu(cpuinfo, cpu);
-
-	switch (cmd) {
-	case CPU_PM_ENTER:
-		stop_counter_cpu();
-		read_pmu_one(&pcpu->pdata);
-		break;
-	case CPU_PM_EXIT:
-		init_counter_cpu();
-		start_counter_cpu();
-		break;
-	case CPU_PM_ENTER_FAILED:
-		reset_pmu_one(&pcpu->pdata);
-		start_counter_cpu();
-		break;
-	default:
-		return NOTIFY_DONE;
-	}
-	return NOTIFY_OK;
-}
-
-static struct notifier_block exynos_cpu_pm_notifier_block = {
-	.notifier_call = exynos_cpu_pm_notifier,
-};
-#endif
-
 static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		unsigned int event)
 {
@@ -1601,8 +2570,22 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			tunables->timer_rate = DEFAULT_TIMER_RATE;
 			tunables->boostpulse_duration_val = DEFAULT_MIN_SAMPLE_TIME;
 			tunables->timer_slack_val = DEFAULT_TIMER_SLACK;
-#ifdef CONFIG_EXYNOS_WD_DVFS
-			tunables->wd_boundary = DEFAULT_WD_BOUNDARY;
+#if defined(CONFIG_EXYNOS_DUAL_GOV_PARAMS_SUPPORT)
+			if (policy->cpu) {
+				for (j = 0; j < NR_MODE; j++) {
+					exynos_fb_param[j]->hispeed_freq = policy->max;
+					exynos_fb_param[j]->hispeed_freq_2nd = policy->max;
+					exynos_fb_param[j]->above_hispeed_delay = default_above_hispeed_delay;
+					exynos_fb_param[j]->nabove_hispeed_delay = ARRAY_SIZE(default_above_hispeed_delay);
+					exynos_fb_param[j]->go_hispeed_load = DEFAULT_GO_HISPEED_LOAD;
+					exynos_fb_param[j]->target_loads = default_target_loads;
+					exynos_fb_param[j]->ntarget_loads = ARRAY_SIZE(default_target_loads);
+					exynos_fb_param[j]->min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
+					exynos_fb_param[j]->timer_rate = DEFAULT_TIMER_RATE;
+					exynos_fb_param[j]->boostpulse_duration_val = DEFAULT_MIN_SAMPLE_TIME;
+					exynos_fb_param[j]->timer_slack_val = DEFAULT_TIMER_SLACK;
+				}
+			}
 #endif
 #ifdef CONFIG_DYNAMIC_MODE_SUPPORT
 			cpufreq_param_set_init(tunables);
@@ -1614,6 +2597,12 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		tunables->usage_count = 1;
 
 		/* update handle for get cpufreq_policy */
+#if defined(CONFIG_EXYNOS_DUAL_GOV_PARAMS_SUPPORT)
+		if (policy->cpu) {
+			exynos_fb_param[DUAL_MODE]->policy = &policy->policy;
+			exynos_fb_param[QUAD_MODE]->policy = &policy->policy;
+		}
+#endif
 		tunables->policy = &policy->policy;
 
 		spin_lock_init(&tunables->target_loads_lock);
@@ -1628,8 +2617,12 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			WARN_ON(cpufreq_get_global_kobject());
 		}
 
-		rc = sysfs_create_group(get_governor_parent_kobj(policy),
-				get_sysfs_attr());
+#if defined(CONFIG_EXYNOS_DUAL_GOV_PARAMS_SUPPORT)
+		if (policy->cpu)
+			rc = exynos_fb_kobject_create(policy);
+		else
+#endif
+		rc = sysfs_create_group(get_governor_parent_kobj(policy), get_sysfs_attr());
 		if (rc) {
 			kfree(tunables);
 			policy->governor_data = NULL;
@@ -1642,9 +2635,6 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 
 		if (!policy->governor->initialized) {
 			idle_notifier_register(&cpufreq_interactive_idle_nb);
-#ifdef CONFIG_EXYNOS_WD_DVFS
-			cpu_pm_register_notifier(&exynos_cpu_pm_notifier_block);
-#endif
 			cpufreq_register_notifier(&cpufreq_notifier_block,
 					CPUFREQ_TRANSITION_NOTIFIER);
 		}
@@ -1654,14 +2644,16 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 	case CPUFREQ_GOV_POLICY_EXIT:
 		if (!--tunables->usage_count) {
 			if (policy->governor->initialized == 1) {
-#ifdef CONFIG_EXYNOS_WD_DVFS
-				cpu_pm_unregister_notifier(&exynos_cpu_pm_notifier_block);
-#endif
 				cpufreq_unregister_notifier(&cpufreq_notifier_block,
 						CPUFREQ_TRANSITION_NOTIFIER);
 				idle_notifier_unregister(&cpufreq_interactive_idle_nb);
 			}
 
+#if defined(CONFIG_EXYNOS_DUAL_GOV_PARAMS_SUPPORT)
+			if (policy->cpu)
+				exynos_fb_kobject_remove();
+			else
+#endif
 			sysfs_remove_group(get_governor_parent_kobj(policy),
 					get_sysfs_attr());
 
@@ -1790,6 +2782,122 @@ unsigned int cpufreq_interactive_get_hispeed_freq(int cpu)
 	return tunables->hispeed_freq;
 }
 
+#if defined(CONFIG_EXYNOS_DUAL_GOV_PARAMS_SUPPORT)
+static int exynos_fb_kobject_create(struct cpufreq_policy *policy)
+{
+	int j;
+	int ret = 0;
+
+	for (j = 0; j < NR_MODE; j++) {
+		exynos_fb_kobj[j] = kzalloc(sizeof(struct kobject *), GFP_KERNEL);
+		if (!exynos_fb_kobj[j]) {
+			pr_err("%s: kzalloc failed for %s kobject.\n",
+					__func__, j ? "quad" : "dual");
+			ret = -ENOMEM;
+			goto alloc_fail;
+		}
+	}
+
+	ret = kobject_init_and_add(exynos_fb_kobj[QUAD_MODE], &exynos_fb_ktype_quad,
+				get_governor_parent_kobj(policy), "interactive");
+	if (ret) {
+		pr_err("%s: Failed to init kobject for quad.\n", __func__);
+		ret = -ENOENT;
+		goto quad_init_fail;
+	}
+
+	ret = kobject_init_and_add(exynos_fb_kobj[DUAL_MODE], &exynos_fb_ktype_dual,
+				exynos_fb_kobj[QUAD_MODE], "dual");
+	if (ret) {
+		pr_err("%s: Failed to init kobject for dual.\n", __func__);
+		ret = -ENOENT;
+		goto dual_init_fail;
+	}
+
+	exynos_fb_policy = policy;
+
+	return ret;
+
+dual_init_fail:
+	kobject_del(exynos_fb_kobj[QUAD_MODE]);
+quad_init_fail:
+	for (j = 0; j < NR_MODE; j++)
+		kfree(exynos_fb_kobj[j]);
+alloc_fail:
+	return ret;
+}
+
+static void exynos_fb_kobject_remove(void)
+{
+	int mode;
+
+	for (mode = 0; mode < NR_MODE; mode++)
+		kobject_del(exynos_fb_kobj[mode]);
+}
+
+static void exynos_update_gov_param(
+		struct cpufreq_interactive_tunables *params, int idx)
+{
+	struct cpufreq_interactive_tunables *tunables;
+	struct cpufreq_policy *policy = container_of(params->policy,
+					struct cpufreq_policy, policy);
+	unsigned long flags;
+
+	spin_lock_irqsave(&exynos_fb_lock, flags);
+
+	if (!policy->governor_data) {
+		printk("%s: Already free policy.\n", __func__);
+		spin_unlock_irqrestore(&exynos_fb_lock, flags);
+		return;
+	}
+
+	tunables = policy->governor_data;
+	tunables->target_loads = params->target_loads;
+	tunables->hispeed_freq = params->hispeed_freq;
+	tunables->hispeed_freq_2nd = params->hispeed_freq_2nd;
+	tunables->go_hispeed_load = params->go_hispeed_load;
+	tunables->min_sample_time = params->min_sample_time;
+	tunables->timer_rate = params->timer_rate;
+	tunables->ntarget_loads = params->ntarget_loads;
+	tunables->above_hispeed_delay = params->above_hispeed_delay;
+	tunables->nabove_hispeed_delay = params->nabove_hispeed_delay;
+	tunables->mode_idx = params->mode_idx = idx;
+
+	spin_unlock_irqrestore(&exynos_fb_lock, flags);
+}
+
+extern struct cpumask hmp_fast_cpu_mask;
+static int exynos_tuned_param_update_notifier(struct notifier_block *nb,
+						    unsigned long event, void *data)
+{
+	struct cpumask mask;
+	int fast_online_cpu;
+	int mode_idx;
+
+	switch (event) {
+	case CPU_DEAD:
+	case CPU_ONLINE:
+		cpumask_copy(&mask, cpu_online_mask);
+		cpumask_and(&mask, &mask, &hmp_fast_cpu_mask);
+		fast_online_cpu = cpumask_weight(&mask);
+		if (!fast_online_cpu) {
+			//pr_debug("%s: Do not update param on slow_cpu.\n", __func__);
+			break;
+		}
+
+		mode_idx = fast_online_cpu > 2 ? QUAD_MODE : DUAL_MODE;
+		exynos_update_gov_param(exynos_fb_param[mode_idx], mode_idx);
+	}
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block exynos_tuned_param_update_nb = {
+	.notifier_call = exynos_tuned_param_update_notifier,
+	.priority = INT_MIN,
+};
+#endif
+
 #ifdef CONFIG_ARCH_EXYNOS
 static int cpufreq_interactive_cluster1_min_qos_handler(struct notifier_block *b,
 						unsigned long val, void *v)
@@ -1798,7 +2906,11 @@ static int cpufreq_interactive_cluster1_min_qos_handler(struct notifier_block *b
 	struct cpufreq_interactive_tunables *tunables;
 	unsigned long flags;
 	int ret = NOTIFY_OK;
-	int cpu = 4; /* policy cpu of cluster 1 */
+#if defined(CONFIG_ARM_EXYNOS_MP_CPUFREQ)
+	int cpu = NR_CLUST0_CPUS;
+#else
+	int cpu = 0;
+#endif
 
 	pcpu = &per_cpu(cpuinfo, cpu);
 
@@ -1812,7 +2924,7 @@ static int cpufreq_interactive_cluster1_min_qos_handler(struct notifier_block *b
 	up_read(&pcpu->enable_sem);
 
 	if (!pcpu->policy || !pcpu->policy->governor_data ||
-		!pcpu->policy->governor) {
+		!pcpu->policy->user_policy.governor) {
 		ret = NOTIFY_BAD;
 		goto exit;
 	}
@@ -1845,7 +2957,11 @@ static int cpufreq_interactive_cluster1_max_qos_handler(struct notifier_block *b
 	struct cpufreq_interactive_tunables *tunables;
 	unsigned long flags;
 	int ret = NOTIFY_OK;
-	int cpu = 4; /* policy cpu of cluster1 */
+#if defined(CONFIG_ARM_EXYNOS_MP_CPUFREQ)
+	int cpu = NR_CLUST0_CPUS;
+#else
+	int cpu = 0;
+#endif
 
 	pcpu = &per_cpu(cpuinfo, cpu);
 
@@ -1859,7 +2975,7 @@ static int cpufreq_interactive_cluster1_max_qos_handler(struct notifier_block *b
 	up_read(&pcpu->enable_sem);
 
 	if (!pcpu->policy || !pcpu->policy->governor_data ||
-		!pcpu->policy->governor) {
+		!pcpu->policy->user_policy.governor) {
 		ret = NOTIFY_BAD;
 		goto exit;
 	}
@@ -1885,6 +3001,7 @@ static struct notifier_block cpufreq_interactive_cluster1_max_qos_notifier = {
 	.notifier_call = cpufreq_interactive_cluster1_max_qos_handler,
 };
 
+#ifdef CONFIG_ARM_EXYNOS_MP_CPUFREQ
 static int cpufreq_interactive_cluster0_min_qos_handler(struct notifier_block *b,
 						unsigned long val, void *v)
 {
@@ -1892,9 +3009,8 @@ static int cpufreq_interactive_cluster0_min_qos_handler(struct notifier_block *b
 	struct cpufreq_interactive_tunables *tunables;
 	unsigned long flags;
 	int ret = NOTIFY_OK;
-	int cpu = 0; /* policy cpu of cluster0 */
 
-	pcpu = &per_cpu(cpuinfo, cpu);
+	pcpu = &per_cpu(cpuinfo, 0);
 
 	mutex_lock(&gov_lock);
 	down_read(&pcpu->enable_sem);
@@ -1906,18 +3022,18 @@ static int cpufreq_interactive_cluster0_min_qos_handler(struct notifier_block *b
 	up_read(&pcpu->enable_sem);
 
 	if (!pcpu->policy || !pcpu->policy->governor_data ||
-		!pcpu->policy->governor) {
+		!pcpu->policy->user_policy.governor) {
 		ret = NOTIFY_BAD;
 		goto exit;
 	}
 
-	trace_cpufreq_interactive_cpu_min_qos(cpu, val, pcpu->policy->cur);
+	trace_cpufreq_interactive_kfc_min_qos(0, val, pcpu->policy->cur);
 
 	if (val < pcpu->policy->cur) {
 		tunables = pcpu->policy->governor_data;
 
 		spin_lock_irqsave(&speedchange_cpumask_lock, flags);
-		cpumask_set_cpu(cpu, &speedchange_cpumask);
+		cpumask_set_cpu(0, &speedchange_cpumask);
 		spin_unlock_irqrestore(&speedchange_cpumask_lock, flags);
 
 		if (speedchange_task)
@@ -1939,9 +3055,8 @@ static int cpufreq_interactive_cluster0_max_qos_handler(struct notifier_block *b
 	struct cpufreq_interactive_tunables *tunables;
 	unsigned long flags;
 	int ret = NOTIFY_OK;
-	int cpu = 0; /* policy cpu of cluster0 */
 
-	pcpu = &per_cpu(cpuinfo, cpu);
+	pcpu = &per_cpu(cpuinfo, 0);
 
 	mutex_lock(&gov_lock);
 	down_read(&pcpu->enable_sem);
@@ -1953,18 +3068,18 @@ static int cpufreq_interactive_cluster0_max_qos_handler(struct notifier_block *b
 	up_read(&pcpu->enable_sem);
 
 	if (!pcpu->policy ||!pcpu->policy->governor_data ||
-		!pcpu->policy->governor) {
+		!pcpu->policy->user_policy.governor) {
 		ret = NOTIFY_BAD;
 		goto exit;
 	}
 
-	trace_cpufreq_interactive_cpu_max_qos(cpu, val, pcpu->policy->cur);
+	trace_cpufreq_interactive_kfc_max_qos(0, val, pcpu->policy->cur);
 
 	if (val > pcpu->policy->cur) {
 		tunables = pcpu->policy->governor_data;
 
 		spin_lock_irqsave(&speedchange_cpumask_lock, flags);
-		cpumask_set_cpu(cpu, &speedchange_cpumask);
+		cpumask_set_cpu(0, &speedchange_cpumask);
 		spin_unlock_irqrestore(&speedchange_cpumask_lock, flags);
 
 		if (speedchange_task)
@@ -1978,6 +3093,7 @@ exit:
 static struct notifier_block cpufreq_interactive_cluster0_max_qos_notifier = {
 	.notifier_call = cpufreq_interactive_cluster0_max_qos_handler,
 };
+#endif
 #endif
 
 static int __init cpufreq_interactive_init(void)
@@ -2012,8 +3128,18 @@ static int __init cpufreq_interactive_init(void)
 #ifdef CONFIG_ARCH_EXYNOS
 	pm_qos_add_notifier(PM_QOS_CLUSTER1_FREQ_MIN, &cpufreq_interactive_cluster1_min_qos_notifier);
 	pm_qos_add_notifier(PM_QOS_CLUSTER1_FREQ_MAX, &cpufreq_interactive_cluster1_max_qos_notifier);
+#ifdef CONFIG_ARM_EXYNOS_MP_CPUFREQ
 	pm_qos_add_notifier(PM_QOS_CLUSTER0_FREQ_MIN, &cpufreq_interactive_cluster0_min_qos_notifier);
 	pm_qos_add_notifier(PM_QOS_CLUSTER0_FREQ_MAX, &cpufreq_interactive_cluster0_max_qos_notifier);
+#endif
+#endif
+
+#if defined(CONFIG_EXYNOS_DUAL_GOV_PARAMS_SUPPORT)
+	for (i = 0; i < NR_MODE; i++)
+		exynos_fb_param[i] = kzalloc(sizeof(struct cpufreq_interactive_tunables),
+					     GFP_KERNEL);
+
+	register_cpu_notifier(&exynos_tuned_param_update_nb);
 #endif
 
 	return cpufreq_register_governor(&cpufreq_gov_interactive);
