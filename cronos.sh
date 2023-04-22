@@ -468,7 +468,7 @@ if [ ! "$CR_TARGET" = "1" ]; then # Generate patch files for non herolte kernels
 		fi
 	fi
 fi
-if [ "$CR_TARGET" = "6" ]; then # Final kernel build
+if [ "$CR_TARGET" = "4" ]; then # Final kernel build
 	echo " Generating ZIP Package for $CR_NAME-$CR_VERSION-$CR_DATE"
 	sed -i "s/fkv/$zver/g" $CR_OUTZIP/META-INF/com/google/android/update-binary
 	cd $CR_OUTZIP && zip -r $CR_PRODUCT/$zver.zip * && cd $CR_DIR
