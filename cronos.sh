@@ -284,11 +284,22 @@ PACK_BOOT_IMG()
 	mv $CR_DTB $CR_AIK/split_img/boot.img-dtb
 	# Create boot.img
 	$CR_AIK/repackimg.sh
+	if [ ! -e $CR_AIK/image-new.img ]; then
+        exit 0;
+        echo "Boot Image Failed to pack"
+        echo " Abort "
+	fi
 	# Remove red warning at boot
 	echo -n "SEANDROIDENFORCE" » $CR_AIK/image-new.img
 	# Copy boot.img to Production folder
+	if [ ! -e $CR_PRODUCT ]; then
+        mkdir $CR_PRODUCT
+	fi
 	cp $CR_AIK/image-new.img $CR_PRODUCT/$CR_IMAGE_NAME.img
 	# Move boot.img to out dir
+	if [ ! -e $CR_OUT ]; then
+        mkdir $CR_OUT
+	fi
 	mv $CR_AIK/image-new.img $CR_OUT/$CR_IMAGE_NAME.img
 	du -k "$CR_OUT/$CR_IMAGE_NAME.img" | cut -f1 >sizkT
 	sizkT=$(head -n 1 sizkT)
