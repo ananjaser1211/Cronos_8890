@@ -73,8 +73,12 @@ CR_CONFIG_CRONOS=cronos_defconfig
 # Default Config status
 CR_ROOT="0"
 CR_SELINUX="1"
-CR_HALLIC="0"
 CR_BOMB="0"
+# Default to OneUI-Q
+CR_CONFIG_VAR=$CR_CONFIG_ONEUI
+CR_DTB_MOUNT=$CR_DTS_ONEUI
+CR_RAMDISK=$CR_RAMDISK_Q
+CR_HALLIC="1"
 # Compiler Paths
 CR_GCC12=~/Android/Toolchains/aarch64-linux-gnu-12.x/bin/aarch64-linux-gnu-
 CR_GCC11=~/Android/Toolchains/aarch64-linux-gnu-11.x/bin/aarch64-linux-gnu-
@@ -374,7 +378,7 @@ BUILD(){
 	CR_CONFIG=$CR_CONFIG_8890
 	BUILD_COMPILER
 	BUILD_CLEAN
-	BUILD_VAR
+	#BUILD_VAR
 	BUILD_IMAGE_NAME
 	BUILD_GENERATE_CONFIG
 	BUILD_ZIMAGE
@@ -493,8 +497,8 @@ echo "5) Build All/ZIP"               "6) Abort"
 echo "----------------------------------------------"
 read -p "Please select your build target (1-6) > " CR_TARGET
 echo " "
-echo "1) OneUI-Q" "2) OneUI-P"
-read -p "Please select your build Variant (1-2) > " CR_VAR
+#echo "1) OneUI-Q" "2) OneUI-P"
+#read -p "Please select your build Variant (1-2) > " CR_VAR
 echo "----------------------------------------------"
 echo " "
 echo "1) $CR_GCC4 (GCC 4.9)"
