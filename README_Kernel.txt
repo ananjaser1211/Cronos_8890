@@ -9,8 +9,9 @@
                         EX)  CROSS_COMPILE=/usr/local/toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android- // check the location of toolchain
         - to Build
                 $ export ANDROID_MAJOR_VERSION=p
-                $ make ARCH=arm64 exynos8890-gracelte_defconfig
-                $ make ARCH=arm64
+                $ export ARCH=arm64
+                $ make exynos8890-gracelte_defconfig
+                $ make
 
 2. Output files
         - Kernel : arch/arm64/boot/Image
