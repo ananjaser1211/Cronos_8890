@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Cronos Build Script V6.0
+# Cronos Build Script V7.0
 # For Exynos8890
-# Coded by AnanJaser1211 @ 2019-2020
+# Coded by AnanJaser1211 @ 2019-2023
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
