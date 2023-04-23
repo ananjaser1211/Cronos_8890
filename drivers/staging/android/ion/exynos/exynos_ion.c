@@ -518,6 +518,28 @@ err:
 	return ret;
 }
 
+static int ion_system_heap_size_notifier(struct notifier_block *nb,
+					 unsigned long action, void *data)
+{
+	show_ion_system_heap_size((struct seq_file *)data);
+	return 0;
+}
+
+static struct notifier_block ion_system_heap_nb = {
+	.notifier_call = ion_system_heap_size_notifier,
+};
+
+static int ion_system_heap_pool_size_notifier(struct notifier_block *nb,
+					      unsigned long action, void *data)
+{
+	show_ion_system_heap_pool_size((struct seq_file *)data);
+	return 0;
+}
+
+static struct notifier_block ion_system_heap_pool_nb = {
+	.notifier_call = ion_system_heap_pool_size_notifier,
+};
+
 static int __init exynos_ion_probe(struct platform_device *pdev)
 {
 	int ret;
@@ -533,6 +555,9 @@ static int __init exynos_ion_probe(struct platform_device *pdev)
 	ret = exynos_ion_create_cma_class();
 	if (ret)
 		return ret;
+
+	show_mem_extra_notifier_register(&ion_system_heap_nb);
+	show_mem_extra_notifier_register(&ion_system_heap_pool_nb);
 
 	return exynos_ion_populate_heaps(pdev, ion_exynos);
 }
