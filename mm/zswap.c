@@ -1311,6 +1311,8 @@ static int __init init_zswap(void)
 	frontswap_register_ops(&zswap_frontswap_ops);
 	if (zswap_debugfs_init())
 		pr_warn("debugfs initialization failed\n");
+	
+	show_mem_extra_notifier_register(&zswap_size_nb);
 	return 0;
 pcpufail:
 	zswap_comp_exit();

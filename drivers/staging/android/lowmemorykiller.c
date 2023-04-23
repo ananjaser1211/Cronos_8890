@@ -96,67 +96,6 @@ static int test_task_flag(struct task_struct *p, int flag)
 	return 0;
 }
 
-static void show_memory(void)
-{
-	unsigned long nr_rbin_free, nr_rbin_pool, nr_rbin_alloc, nr_rbin_file;
-
-	nr_rbin_free = global_page_state(NR_FREE_RBIN_PAGES);
-	nr_rbin_pool = atomic_read(&rbin_pool_pages);
-	nr_rbin_alloc = atomic_read(&rbin_allocated_pages);
-	nr_rbin_file = totalrbin_pages - nr_rbin_free - nr_rbin_pool
-					- nr_rbin_alloc;
-
-#define K(x) ((x) << (PAGE_SHIFT - 10))
-	printk("Mem-Info:"
-		" totalram_pages:%lukB"
-		" free:%lukB"
-		" active_anon:%lukB"
-		" inactive_anon:%lukB"
-		" active_file:%lukB"
-		" inactive_file:%lukB"
-		" unevictable:%lukB"
-		" isolated(anon):%lukB"
-		" isolated(file):%lukB"
-		" dirty:%lukB"
-		" writeback:%lukB"
-		" mapped:%lukB"
-		" shmem:%lukB"
-		" slab_reclaimable:%lukB"
-		" slab_unreclaimable:%lukB"
-		" kernel_stack:%lukB"
-		" pagetables:%lukB"
-		" free_cma:%lukB"
-		" rbin_free:%lukB"
-		" rbin_pool:%lukB"
-		" rbin_alloc:%lukB"
-		" rbin_file:%lukB"
-		"\n",
-		K(totalram_pages),
-		K(global_page_state(NR_FREE_PAGES)),
-		K(global_page_state(NR_ACTIVE_ANON)),
-		K(global_page_state(NR_INACTIVE_ANON)),
-		K(global_page_state(NR_ACTIVE_FILE)),
-		K(global_page_state(NR_INACTIVE_FILE)),
-		K(global_page_state(NR_UNEVICTABLE)),
-		K(global_page_state(NR_ISOLATED_ANON)),
-		K(global_page_state(NR_ISOLATED_FILE)),
-		K(global_page_state(NR_FILE_DIRTY)),
-		K(global_page_state(NR_WRITEBACK)),
-		K(global_page_state(NR_FILE_MAPPED)),
-		K(global_page_state(NR_SHMEM)),
-		K(global_page_state(NR_SLAB_RECLAIMABLE)),
-		K(global_page_state(NR_SLAB_UNRECLAIMABLE)),
-		K(global_page_state(NR_KERNEL_STACK)),
-		K(global_page_state(NR_PAGETABLE)),
-		K(global_page_state(NR_FREE_CMA_PAGES)),
-		K(nr_rbin_free),
-		K(nr_rbin_pool),
-		K(nr_rbin_alloc),
-		K(nr_rbin_file)
-		);
-#undef K
-}
-
 static unsigned long lowmem_count(struct shrinker *s,
 				  struct shrink_control *sc)
 {
@@ -295,7 +234,7 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 			     cache_size, cache_limit,
 			     min_score_adj,
 			     free);
-		show_memory();
+		show_mem_extra_call_notifiers();
 		lowmem_deathpending_timeout = jiffies + HZ;
 		set_tsk_thread_flag(selected, TIF_MEMDIE);
 		send_sig(SIGKILL, selected, 0);
