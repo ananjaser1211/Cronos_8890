@@ -3,7 +3,7 @@
 #include "linux/dcache.h"
 #include "linux/err.h"
 #include "linux/fs.h"
-#include "linux/input-event-codes.h"
+#include "linux/input.h"
 #include "linux/kprobes.h"
 #include "linux/printk.h"
 #include "linux/types.h"
