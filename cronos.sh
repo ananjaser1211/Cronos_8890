@@ -415,6 +415,28 @@ CR_TARGET=4
 BUILD
 }
 
+# Preconfigured Debug build
+BUILD_DEBUG(){
+echo "----------------------------------------------"
+echo " DEBUG : Debug build initiated "
+CR_TARGET=2
+CR_COMPILER=2
+CR_SELINUX=1
+CR_KSU="y"
+CR_CLEAN="n"
+echo " DEBUG : Set Build options "
+echo " DEBUG : Variant  : $CR_VARIANT_G935"
+echo " DEBUG : Compiler : $CR_LINARO"
+echo " DEBUG : Selinux  : $CR_SELINUX Permissive"
+echo " DEBUG : Clean    : $CR_CLEAN"
+echo "----------------------------------------------"
+BUILD
+echo "----------------------------------------------"
+echo " DEBUG : build completed "
+echo "----------------------------------------------"
+exit 0;
+}
+
 
 # Pack All Images into ZIP
 PACK_KERNEL_ZIP() {
@@ -498,6 +520,9 @@ fi
 clear
 echo "----------------------------------------------"
 echo "$CR_NAME $CR_VERSION Build Script $CR_DATE"
+if [ "$1" = "-d" ]; then
+BUILD_DEBUG
+fi
 echo " "
 echo " "
 echo "1) herolte" "2) hero2lte" "3) gracerlte" "4) gracelte" 
