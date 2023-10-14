@@ -74,6 +74,7 @@ CR_CONFIG_CRONOS=cronos_defconfig
 CR_ROOT="0"
 CR_SELINUX="1"
 CR_BOMB="0"
+CR_KSU="n"
 # Default to OneUI-Q
 CR_CONFIG_VAR=$CR_CONFIG_ONEUI
 CR_DTB_MOUNT=$CR_DTS_ONEUI
@@ -209,6 +210,14 @@ BUILD_GENERATE_CONFIG()
     echo " Legacy BOMB Edition RIL"
 	sed -i -- '/CONFIG_MODEM_PIE_REV/d' $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
     echo "# CONFIG_MODEM_PIE_REV is not set" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+  fi
+  if [ $CR_KSU = "y" ]; then
+    echo " Building KernelSU Kernel"
+    echo "CONFIG_KSU=y" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
+    CR_IMAGE_NAME=$CR_IMAGE_NAME-ksu
+    zver=$zver-KernelSU
+  else
+    echo "# CONFIG_KSU is not set" >> $CR_DIR/arch/$CR_ARCH/configs/tmp_defconfig
   fi
   echo " Set $CR_VARIANT to generated config "
   CR_CONFIG=tmp_defconfig
@@ -512,6 +521,8 @@ echo " "
 echo "1) Selinux Permissive " "2) Selinux Enforcing"
 echo " "
 read -p "Please select your SElinux mode (1-2) > " CR_SELINUX
+echo " "
+read -p "Enable KernelSU? (y/n) > " CR_KSU
 echo " "
 if [ "$CR_TARGET" = "6" ]; then
 echo "Build Aborted"
