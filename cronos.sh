@@ -407,8 +407,10 @@ echo "----------------------------------------------"
 echo " Compiling ALL targets "
 CR_TARGET=1
 BUILD
+export -n "CONFIG_MODEL_HEROLTE"
 CR_TARGET=2
 BUILD
+export -n "CONFIG_MODEL_HERO2LTE"
 CR_TARGET=3
 BUILD
 CR_TARGET=4
