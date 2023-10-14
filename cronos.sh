@@ -512,7 +512,7 @@ if [ "$CR_TARGET" = "4" ]; then # Final kernel build
 	echo "----------------------------------------------"
 	echo "$CR_NAME kernel build finished."
 	echo "Compiled Package Size = $sizdz Kb"
-	echo "$CR_NAME-$CR_VERSION-$CR_DATE.zip Ready"
+	echo "$zver.zip Ready"
 	echo "Press Any key to end the script"
 	echo "----------------------------------------------"
 fi
