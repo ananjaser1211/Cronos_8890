@@ -8,6 +8,7 @@
 #include "linux/uaccess.h"
 #include "linux/sched.h"
 #else
+#include "linux/uaccess.h"
 #include "linux/sched.h"
 #endif
 #include "klog.h" // IWYU pragma: keep
