@@ -10,7 +10,7 @@
 #include "linux/uaccess.h"
 #include "linux/version.h"
 #include "linux/workqueue.h"
-
+#include "linux/aio.h"
 #include "allowlist.h"
 #include "arch.h"
 #include "klog.h" // IWYU pragma: keep
