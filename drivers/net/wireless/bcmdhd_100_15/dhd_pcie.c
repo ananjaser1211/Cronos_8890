@@ -2270,13 +2270,13 @@ static int concate_revision_bcm4359(dhd_bus_t *bus, char *fw_path, char *nv_path
 #define DEFAULT_CIDINFO_FOR_B0		"r01i_e32_b0"
 #define MAX_VID_LEN					8
 #define CIS_TUPLE_HDR_LEN		2
-#if defined(BCM4361_CHIP)
+#if defined(BCM4359_CHIP)
 #define CIS_TUPLE_START_ADDRESS		0x18011110
 #define CIS_TUPLE_END_ADDRESS		0x18011167
 #elif defined(BCM4375_CHIP)
 #define CIS_TUPLE_START_ADDRESS		0x18011120
 #define CIS_TUPLE_END_ADDRESS		0x18011177
-#endif /* defined(BCM4361_CHIP) */
+#endif /* defined(BCM4359_CHIP) */
 #define CIS_TUPLE_MAX_COUNT		(uint32)((CIS_TUPLE_END_ADDRESS - CIS_TUPLE_START_ADDRESS\
 						+ 1) / sizeof(uint32))
 #define CIS_TUPLE_TAG_START			0x80
