@@ -391,8 +391,6 @@ typedef struct dhd_bus {
 	ulong oob_intr_enable_count;
 	ulong oob_intr_disable_count;
 	uint64 last_oob_irq_time;
-	uint64 last_oob_irq_enable_time;
-	uint64 last_oob_irq_disable_time;
 #endif /* BCMPCIE_OOB_HOST_WAKE */
 	uint64 isr_entry_time;
 	uint64 isr_exit_time;
@@ -406,13 +404,11 @@ typedef struct dhd_bus {
 	uint64 last_process_txcpl_time;
 	uint64 last_process_rxcpl_time;
 	uint64 last_process_infocpl_time;
-	uint64 last_process_edl_time;
 	uint64 last_suspend_start_time;
 	uint64 last_suspend_end_time;
 	uint64 last_resume_start_time;
 	uint64 last_resume_end_time;
 	uint64 last_non_ours_irq_time;
-	uint8 hwa_enab_bmap;
 	bool  idma_enabled;
 	bool  ifrm_enabled;
 	bool  dar_enabled;
@@ -521,9 +517,7 @@ extern int dhdpcie_enable_device(dhd_bus_t *bus);
 extern int dhdpcie_oob_intr_register(dhd_bus_t *bus);
 extern void dhdpcie_oob_intr_unregister(dhd_bus_t *bus);
 extern void dhdpcie_oob_intr_set(dhd_bus_t *bus, bool enable);
-extern int dhdpcie_get_oob_irq_num(struct dhd_bus *bus);
-extern int dhdpcie_get_oob_irq_status(struct dhd_bus *bus);
-extern int dhdpcie_get_oob_irq_level(void);
+extern int dhdpcie_get_oob_irq_num(dhd_bus_t *bus);
 #endif /* BCMPCIE_OOB_HOST_WAKE */
 
 #if defined(CONFIG_ARCH_EXYNOS)
@@ -642,7 +636,6 @@ int dhdpcie_config_restore(dhd_bus_t *bus, bool restore_pmcsr);
 int dhdpcie_config_save(dhd_bus_t *bus);
 int dhdpcie_set_pwr_state(dhd_bus_t *bus, uint state);
 
-extern bool dhdpcie_bus_get_pcie_hwa_supported(dhd_bus_t *bus);
 extern bool dhdpcie_bus_get_pcie_idma_supported(dhd_bus_t *bus);
 extern bool dhdpcie_bus_get_pcie_ifrm_supported(dhd_bus_t *bus);
 extern bool dhdpcie_bus_get_pcie_dar_supported(dhd_bus_t *bus);

@@ -413,7 +413,6 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
-		   -Werror \
 		   -std=gnu89 $(call cc-option,-fno-PIE)
 
 KBUILD_AFLAGS_KERNEL :=
@@ -493,8 +492,8 @@ KBUILD_CFLAGS += -DANDROID_VERSION=$(PLATFORM_VERSION_NUMBER)
 KBUILD_CFLAGS += -DANDROID_MAJOR_VERSION=$(MAJOR_VERSION)
 # Example
 else
-export ANDROID_VERSION=9.0.0
-KBUILD_CFLAGS += -DANDROID_VERSION=9.0.0
+export ANDROID_VERSION=10.0.0
+KBUILD_CFLAGS += -DANDROID_VERSION=10.0.0
 endif
 PHONY += replace_dirs
 replace_dirs:

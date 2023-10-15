@@ -3108,12 +3108,6 @@ dhd_set_host_cap(dhd_pub_t *dhd)
 			data |= HOSTCAP_FAST_DELETE_RING;
 		}
 
-		if (dhdpcie_bus_get_pcie_hwa_supported(dhd->bus)) {
-			DHD_ERROR(("HWA inited\n"));
-			/* TODO: Is hostcap needed? */
-			dhd->hwa_inited = TRUE;
-		}
-
 		if (dhdpcie_bus_get_pcie_idma_supported(dhd->bus)) {
 			DHD_ERROR(("IDMA inited\n"));
 			data |= HOSTCAP_H2D_IDMA;

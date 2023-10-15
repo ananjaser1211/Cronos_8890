@@ -1075,10 +1075,11 @@ dhd_check_module_b90(void)
 }
 #endif /* SUPPORT_MULTIPLE_MODULE_CIS */
 
+#if defined(SUPPORT_BCM4361_MIXED_MODULES)
 #define CID_FEM_MURATA	"_mur_"
 /* extract module type from cid information */
 int
-dhd_check_module_bcm(char *module_type, int index, bool *is_murata_fem)
+dhd_check_module_bcm4361(char *module_type, int index, bool *is_murata_fem)
 {
 	int ret = 0, i;
 	char vname[MAX_VNAME_LEN];
@@ -1122,5 +1123,6 @@ dhd_check_module_bcm(char *module_type, int index, bool *is_murata_fem)
 
 	return ret;
 }
+#endif /* SUPPORT_BCM4361_MIXED_MODULES */
 #endif /* USE_CID_CHECK */
 #endif /* DHD_USE_CISINFO */

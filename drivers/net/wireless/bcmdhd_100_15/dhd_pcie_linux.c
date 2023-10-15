@@ -2562,49 +2562,7 @@ dhdpcie_bus_request_irq(struct dhd_bus *bus)
 }
 
 #ifdef BCMPCIE_OOB_HOST_WAKE
-#ifdef CONFIG_BCMDHD_GET_OOB_STATE
-extern int dhd_get_wlan_oob_gpio(void);
-#endif /* CONFIG_BCMDHD_GET_OOB_STATE */
-
-int dhdpcie_get_oob_irq_level(void)
-{
-	int gpio_level;
-
-#ifdef CONFIG_BCMDHD_GET_OOB_STATE
-	gpio_level = dhd_get_wlan_oob_gpio();
-#else
-	gpio_level = BCME_UNSUPPORTED;
-#endif /* CONFIG_BCMDHD_GET_OOB_STATE */
-	return gpio_level;
-}
-
-int dhdpcie_get_oob_irq_status(struct dhd_bus *bus)
-{
-	dhdpcie_info_t *pch;
-	dhdpcie_os_info_t *dhdpcie_osinfo;
-
-	if (bus == NULL) {
-		DHD_ERROR(("%s: bus is NULL\n", __FUNCTION__));
-		return 0;
-	}
-
-	if (bus->dev == NULL) {
-		DHD_ERROR(("%s: bus->dev is NULL\n", __FUNCTION__));
-		return 0;
-	}
-
-	pch = pci_get_drvdata(bus->dev);
-	if (pch == NULL) {
-		DHD_ERROR(("%s: pch is NULL\n", __FUNCTION__));
-		return 0;
-	}
-
-	dhdpcie_osinfo = (dhdpcie_os_info_t *)pch->os_cxt;
-
-	return dhdpcie_osinfo ? dhdpcie_osinfo->oob_irq_enabled : 0;
-}
-
-int dhdpcie_get_oob_irq_num(struct dhd_bus *bus)
+int dhdpcie_get_oob_irq_num(dhd_bus_t *bus)
 {
 	dhdpcie_info_t *pch;
 	dhdpcie_os_info_t *dhdpcie_osinfo;
@@ -2659,11 +2617,9 @@ void dhdpcie_oob_intr_set(dhd_bus_t *bus, bool enable)
 		if (enable) {
 			enable_irq(dhdpcie_osinfo->oob_irq_num);
 			bus->oob_intr_enable_count++;
-			bus->last_oob_irq_enable_time = OSL_LOCALTIME_NS();
 		} else {
 			disable_irq_nosync(dhdpcie_osinfo->oob_irq_num);
 			bus->oob_intr_disable_count++;
-			bus->last_oob_irq_disable_time = OSL_LOCALTIME_NS();
 		}
 		dhdpcie_osinfo->oob_irq_enabled = enable;
 	}

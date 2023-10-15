@@ -68,11 +68,6 @@ int get_scheduler_policy(struct task_struct *p);
 
 #define ALL_INTERFACES	0xff
 
-/* H2D and D2H ring dump is enabled by default */
-#ifdef PCIE_FULL_DONGLE
-#define DHD_DUMP_PCIE_RINGS
-#endif /* PCIE_FULL_DONGLE */
-
 #include <wlioctl.h>
 #include <bcmstdlib_s.h>
 #include <dhdioctl.h>
@@ -100,6 +95,11 @@ int get_scheduler_policy(struct task_struct *p);
 #ifdef DEBUG_DPC_THREAD_WATCHDOG
 #define MAX_RESCHED_CNT 600
 #endif /* DEBUG_DPC_THREAD_WATCHDOG */
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0) && LINUX_VERSION_CODE < \
+	KERNEL_VERSION(3, 18, 0) || defined(CONFIG_BCMDHD_VENDOR_EXT))
+#define WL_VENDOR_EXT_SUPPORT
+#endif /* 3.18 > KERNEL_VER >= 3.14 || defined(CONFIG_BCMDHD_VENDOR_EXT) */
 
 #if defined(KEEP_ALIVE)
 /* Default KEEP_ALIVE Period is 55 sec to prevent AP from sending Keep Alive probe frame */
@@ -323,7 +323,11 @@ typedef enum download_type {
 	FW,
 	NVRAM,
 	CLM_BLOB,
-	TXCAP_BLOB
+	TXCAP_BLOB,
+#if defined(DHD_USE_CLMINFO_PARSER)
+	CLMINFO,
+#endif /* DHD_USE_CLMINFO_PARSER */
+	DOWNLOAD_TYPE_LAST
 } download_type_t;
 
 /* For supporting multiple interfaces */
@@ -392,6 +396,7 @@ enum dhd_op_flags {
 #define MAX_NVRAMBUF_SIZE	(16 * 1024) /* max nvram buf size */
 #define MAX_CLM_BUF_SIZE	(48 * 1024) /* max clm blob size */
 #define MAX_TXCAP_BUF_SIZE	(16 * 1024) /* max txcap blob size */
+#define MAX_CLMINFO_BUF_SIZE    (4 * 1024) /* max clminfo buf size */
 #ifdef DHD_DEBUG
 #define DHD_JOIN_MAX_TIME_DEFAULT 10000 /* ms: Max time out for joining AP */
 #define DHD_SCAN_DEF_TIMEOUT 10000 /* ms: Max time out for scan in progress */
@@ -822,11 +827,21 @@ extern void copy_debug_dump_time(char *dest, char *src);
 #define DHDIF_FWDER(dhdif)      FALSE
 
 #if defined(CUSTOMER_HW4)
-#ifndef DHD_COMMON_DUMP_PATH
+#if defined(ANDROID_PLATFORM_VERSION)
+#if (ANDROID_PLATFORM_VERSION >= 9)
+#ifdef DHD_COMMON_DUMP_PATH
+#undef DHD_COMMON_DUMP_PATH
+#endif /* DHD_COMMON_DUMP_PATH */
+#if defined(BCM4361_CHIP) || defined(BCM4359_CHIP) || defined(BCM43456_CHIP)
 #define DHD_COMMON_DUMP_PATH	"/data/log/wifi/"
+#else
+#define DHD_COMMON_DUMP_PATH	"/data/vendor/log/wifi/"
+#endif /* BCM4361_CHIP || BCM4359_CHIP || BCM43456_CHIP */
+#endif /* ANDROID_PLATFORM_VERSION >= 9 */
+#endif /* ANDROID_PLATFORM_VERSION */
+#ifndef DHD_COMMON_DUMP_PATH
+#define DHD_COMMON_DUMP_PATH	"/data/media/wifi/log/"
 #endif /* !DHD_COMMON_DUMP_PATH */
-#elif (defined(BOARD_PANDA) || defined(__ARM_ARCH_7A__))
-#define DHD_COMMON_DUMP_PATH	"/data/vendor/wifi/"
 #else
 #define DHD_COMMON_DUMP_PATH	"/installmedia/"
 #endif /* CUSTOMER_HW4 */
@@ -1417,6 +1432,9 @@ typedef struct dhd_pub {
 #ifdef DHD_PKTDUMP_ROAM
 	void *pktcnts;
 #endif /* DHD_PKTDUMP_ROAM */
+#ifdef DHD_USE_CLMINFO_PARSER
+	bool is_clm_mult_regrev;	/* Checking for CLM single/multiple regrev */
+#endif /* DHD_USE_CLMINFO_PARSER */
 	bool disable_dtim_in_suspend;	/* Disable set bcn_li_dtim in suspend */
 	union {
 		wl_roam_stats_v1_t v1;
@@ -1765,7 +1783,7 @@ inline static void MUTEX_UNLOCK_SOFTAP_SET(dhd_pub_t * dhdp)
 #define OOB_WAKE_LOCK_TIMEOUT 500
 extern void dhd_os_oob_irq_wake_lock_timeout(dhd_pub_t *pub, int val);
 extern void dhd_os_oob_irq_wake_unlock(dhd_pub_t *pub);
-
+extern int dhdpcie_get_oob_irq_num(struct dhd_bus *bus);
 #define DHD_OS_OOB_IRQ_WAKE_LOCK_TIMEOUT(pub, val)	dhd_os_oob_irq_wake_lock_timeout(pub, val)
 #define DHD_OS_OOB_IRQ_WAKE_UNLOCK(pub)			dhd_os_oob_irq_wake_unlock(pub)
 #endif /* BCMPCIE_OOB_HOST_WAKE */
@@ -2596,6 +2614,10 @@ extern char fw_path2[MOD_PARAM_PATHLEN];
 #define DHD_EXPORT_CNTL_FILE
 #define DHD_SOFTAP_DUAL_IF_INFO
 #define DHD_SEND_HANG_PRIVCMD_ERRORS
+/* ANDROID P(9.0) and later, always use single nvram file */
+#ifndef DHD_USE_SINGLE_NVRAM_FILE
+#define DHD_USE_SINGLE_NVRAM_FILE
+#endif /* !DHD_USE_SINGLE_NVRAM_FILE */
 #else
 #define PLATFORM_PATH   "/data/misc/conn/"
 #endif /* ANDROID_PLATFORM_VERSION >= 9 */
@@ -2653,14 +2675,15 @@ static INLINE int dhd_check_module_mac(dhd_pub_t *dhdp) { return 0; }
 int dhd_read_cis(dhd_pub_t *dhdp);
 void dhd_clear_cis(dhd_pub_t *dhdp);
 #if defined(SUPPORT_MULTIPLE_MODULE_CIS) && defined(USE_CID_CHECK)
+bool dhd_check_module(char *module_name);
 extern int dhd_check_module_b85a(void);
 extern int dhd_check_module_b90(void);
 #define BCM4359_MODULE_TYPE_B90B 1
 #define BCM4359_MODULE_TYPE_B90S 2
 #endif /* defined(SUPPORT_MULTIPLE_MODULE_CIS) && defined(USE_CID_CHECK) */
-#if defined(USE_CID_CHECK)
-extern int dhd_check_module_bcm(char *module_type, int index, bool *is_murata_fem);
-#endif /* defined(USE_CID_CHECK) */
+#if defined(SUPPORT_BCM4361_MIXED_MODULES) && defined(USE_CID_CHECK)
+extern int dhd_check_module_bcm4361(char *module_type, int index, bool *is_murata_fem);
+#endif /* defined(SUPPORT_BCM4361_MIXED_MODULES) && defined(USE_CID_CHECK) */
 #else
 static INLINE int dhd_read_cis(dhd_pub_t *dhdp) { return 0; }
 static INLINE void dhd_clear_cis(dhd_pub_t *dhdp) { }
@@ -2934,6 +2957,10 @@ int dhd_download_blob_cached(dhd_pub_t *dhd, char *file_path,
 
 int dhd_apply_default_txcap(dhd_pub_t *dhd, char *txcap_path);
 int dhd_apply_default_clm(dhd_pub_t *dhd, char *clm_path);
+#ifdef DHD_USE_CLMINFO_PARSER
+int dhd_get_clminfo(dhd_pub_t *dhd, char *clm_path);
+#define NUM_OF_COUNTRYS 150
+#endif /* DHD_USE_CLMINFO_PARSER */
 
 #ifdef SHOW_LOGTRACE
 int dhd_parse_logstrs_file(osl_t *osh, char *raw_fmts, int logstrs_size,
@@ -3418,6 +3445,19 @@ extern void dhd_set_tid_based_on_uid(dhd_pub_t *dhdp, void *pkt);
 #else
 #define FILE_NAME_HAL_TAG	"_hal" /* The tag name concatenated by HAL */
 #endif /* DHD_DUMP_FILE_WRITE_FROM_KERNEL */
+#if defined(DHD_BLOB_EXISTENCE_CHECK) && defined(DHD_USE_CLMINFO_PARSER)
+#define CHECK_IS_BLOB(dhdp)		(dhdp)->is_blob
+#define CHECK_IS_MULT_REGREV(dhdp)	(dhdp)->is_clm_mult_regrev
+#elif defined(DHD_BLOB_EXISTENCE_CHECK) && !defined(DHD_USE_CLMINFO_PARSER)
+#define CHECK_IS_BLOB(dhdp)		(dhdp)->is_blob
+#define CHECK_IS_MULT_REGREV(dhdp)	FALSE
+#elif !defined(DHD_BLOB_EXISTENCE_CHECK) && defined(DHD_USE_CLMINFO_PARSER)
+#define CHECK_IS_BLOB(dhdp)		TRUE
+#define CHECK_IS_MULT_REGREV(dhdp)	(dhdp)->is_clm_mult_regrev
+#else /* !DHD_BLOB_EXISTENCE_CHECK && !DHD_USE_CLMINFO_PARSER */
+#define CHECK_IS_BLOB(dhdp)		FALSE
+#define CHECK_IS_MULT_REGREV(dhdp)	TRUE
+#endif /* DHD_BLOB_EXISTENCE_CHECK && DHD_USE_CLMINFO_PARSER */
 
 #if defined(DISABLE_HE_ENAB) || defined(CUSTOM_CONTROL_HE_ENAB)
 extern int dhd_control_he_enab(dhd_pub_t * dhd, uint8 he_enab);

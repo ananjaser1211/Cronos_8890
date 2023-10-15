@@ -214,6 +214,18 @@ config BCMDHD_PREALLOC_MEMDUMP
 	---help---
 	  Preallocated memory support for dongle memory dump
 
+config WLAN_HERO
+	bool "model code for hero"
+	depends on BROADCOM_WIFI
+	---help---
+	  This is configuration for USA regrev
+
+config WLAN_HERO2
+	bool "model code for hero2"
+	depends on BROADCOM_WIFI
+	---help---
+	  This is configuration for USA regrev
+
 config BCMDHD_OOB_HOST_WAKE
 	bool "Use the external WLAN_HOST_WAKE pin"
 	depends on BROADCOM_WIFI
@@ -227,6 +239,11 @@ config SPLIT_ARGOS_SET
 	---help---
 	To support SPLIT_ARGOS_SET
 
+config WLAN_GRACE
+	bool "Model code for GRACE"
+	depends on BROADCOM_WIFI
+	---help---
+	  This is configuration for Grace feature
 config WLAN_VHTDISABLE
 	bool "WLAN Disable 11ac"
 	depends on BCM43456
@@ -251,6 +268,6 @@ config WLAN_VENDOR_DUMP_ENABLE
 config BCMDHD_GET_OOB_STATE
         bool "Support WLAN_HOST_WAKE pin level information"
         depends on BCMDHD_OOB_HOST_WAKE
-        default y
+        default n
         ---help---
           Support WLAN_HOST_WAKE pin level information

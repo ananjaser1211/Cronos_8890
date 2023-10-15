@@ -43,8 +43,8 @@ CR_NAME=CronosKernel
 # Thread count
 CR_JOBS=$(nproc --all)
 # Target Android version
-CR_ANDROID=p
-CR_PLATFORM=9.0.0
+CR_ANDROID=q
+CR_PLATFORM=10
 # Target ARCH
 CR_ARCH=arm64
 # Current Date

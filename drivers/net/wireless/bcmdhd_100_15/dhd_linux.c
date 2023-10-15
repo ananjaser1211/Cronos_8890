@@ -8355,7 +8355,11 @@ dhd_wlan_power_off_handler(void *handler, unsigned char reason)
 		/* save core dump to a file */
 		if (dhdp->memdump_enabled) {
 #ifdef DHD_SSSR_DUMP
-			dhdp->collect_sssr = TRUE;
+			if (dhdp->sssr_inited) {
+				dhdp->info->no_wq_sssrdump = TRUE;
+				dhd_bus_sssr_dump(dhdp);
+				dhdp->info->no_wq_sssrdump = FALSE;
+			}
 #endif /* DHD_SSSR_DUMP */
 			dhdp->memdump_type = DUMP_TYPE_DUE_TO_BT;
 			dhd_bus_mem_dump(dhdp);
@@ -21091,6 +21095,81 @@ copy_debug_dump_time(char *dest, char *src)
 	memcpy(dest, src, DEBUG_DUMP_TIME_BUF_LEN);
 }
 #endif /* WL_CFGVENDOR_SEND_HANG_EVENT || DHD_PKT_LOGGING */
+
+#define KIRQ_PRINT_BUF_LEN 256
+
+void
+dhd_print_kirqstats(dhd_pub_t *dhd, unsigned int irq_num)
+{
+	unsigned long flags = 0;
+	struct irq_desc *desc;
+	int i;          /* cpu iterator */
+	struct bcmstrbuf strbuf;
+	char tmp_buf[KIRQ_PRINT_BUF_LEN];
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28))
+	desc = irq_to_desc(irq_num);
+	if (!desc) {
+		DHD_ERROR(("%s : irqdesc is not found \n", __FUNCTION__));
+		return;
+	}
+	bcm_binit(&strbuf, tmp_buf, KIRQ_PRINT_BUF_LEN);
+	raw_spin_lock_irqsave(&desc->lock, flags);
+	bcm_bprintf(&strbuf, "dhd irq %u:", irq_num);
+	for_each_online_cpu(i)
+		bcm_bprintf(&strbuf, "%10u ",
+			desc->kstat_irqs ? *per_cpu_ptr(desc->kstat_irqs, i) : 0);
+	if (desc->irq_data.chip) {
+		if (desc->irq_data.chip->name)
+			bcm_bprintf(&strbuf, " %8s", desc->irq_data.chip->name);
+		else
+			bcm_bprintf(&strbuf, " %8s", "-");
+	} else {
+		bcm_bprintf(&strbuf, " %8s", "None");
+	}
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0))
+	if (desc->irq_data.domain)
+		bcm_bprintf(&strbuf, " %d", (int)desc->irq_data.hwirq);
+#ifdef CONFIG_GENERIC_IRQ_SHOW_LEVEL
+	bcm_bprintf(&strbuf, " %-8s", irqd_is_level_type(&desc->irq_data) ? "Level" : "Edge");
+#endif // endif
+#endif /* LINUX VERSION > 3.1.0 */
+
+	if (desc->name)
+		bcm_bprintf(&strbuf, "-%-8s", desc->name);
+
+	DHD_ERROR(("%s\n", strbuf.origbuf));
+	raw_spin_unlock_irqrestore(&desc->lock, flags);
+#endif /* LINUX VERSION > 2.6.28 */
+}
+
+void
+dhd_show_kirqstats(dhd_pub_t *dhd)
+{
+	unsigned int irq = -1;
+#ifdef BCMPCIE
+	dhdpcie_get_pcieirq(dhd->bus, &irq);
+#endif /* BCMPCIE */
+#ifdef BCMSDIO
+	irq = ((wifi_adapter_info_t *)dhd->info->adapter)->irq_num;
+#endif /* BCMSDIO */
+	if (irq != -1) {
+#ifdef BCMPCIE
+		DHD_ERROR(("DUMP data kernel irq stats : \n"));
+#endif /* BCMPCIE */
+#ifdef BCMSDIO
+		DHD_ERROR(("DUMP data/host wakeup kernel irq stats : \n"));
+#endif /* BCMSDIO */
+		dhd_print_kirqstats(dhd, irq);
+	}
+#ifdef BCMPCIE_OOB_HOST_WAKE
+	irq = dhdpcie_get_oob_irq_num(dhd->bus);
+	if (irq) {
+		DHD_ERROR(("DUMP PCIE host wakeup kernel irq stats : \n"));
+		dhd_print_kirqstats(dhd, irq);
+	}
+#endif /* BCMPCIE_OOB_HOST_WAKE */
+}
 
 void
 dhd_print_tasklet_status(dhd_pub_t *dhd)
