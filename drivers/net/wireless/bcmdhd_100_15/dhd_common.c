@@ -5709,6 +5709,10 @@ dhd_apply_default_clm(dhd_pub_t *dhd, char *clm_path)
 		}
 	} else {
 		DHD_INFO(("Skipping the clm download. len:%d memblk:%p \n", len, memblock));
+#ifdef DHD_USE_CLMINFO_PARSER
+		err = BCME_ERROR;
+		goto exit;
+#endif /* DHD_USE_CLMINFO_PARSER */
 	}
 
 	/* Verify country code */
@@ -5727,6 +5731,232 @@ exit:
 
 	return err;
 }
+
+#ifdef DHD_USE_CLMINFO_PARSER
+#ifdef CUSTOMER_HW4
+#ifdef PLATFORM_SLP
+#define CLMINFO_PATH PLATFORM_PATH".clminfo"
+#else
+#define CLMINFO_PATH VENDOR_PATH"/etc/wifi/.clminfo"
+#endif /* PLATFORM_SLP */
+#else
+#define CLMINFO_PATH "/installmedia/.clminfo"
+#endif /* CUSTOMER_HW4 */
+
+extern struct cntry_locales_custom translate_custom_table[NUM_OF_COUNTRYS];
+
+unsigned int
+process_clarification_vars(char *varbuf, unsigned int varbuf_size)
+{
+	char *dp;
+	bool findNewline;
+	int column;
+	unsigned int buf_len, len;
+
+	dp = varbuf;
+
+	findNewline = FALSE;
+	column = 0;
+
+	for (len = 0; len < varbuf_size; len++) {
+		if ((varbuf[len] == '\r') || (varbuf[len] == ' ')) {
+			continue;
+		}
+		if (findNewline && varbuf[len] != '\n') {
+			continue;
+		}
+		findNewline = FALSE;
+		if (varbuf[len] == '#') {
+			findNewline = TRUE;
+			continue;
+		}
+		if (varbuf[len] == '\n') {
+			if (column == 0) {
+				continue;
+			}
+			column = 0;
+			continue;
+		}
+		*dp++ = varbuf[len];
+		column++;
+	}
+	buf_len = (unsigned int)(dp - varbuf);
+
+	while (dp < varbuf + len)
+		*dp++ = 0;
+
+	return buf_len;
+}
+
+int
+dhd_get_clminfo(dhd_pub_t *dhd, char *clm_path)
+{
+	int bcmerror = BCME_OK;
+	char *clminfo_path = CLMINFO_PATH;
+
+	char *memblock = NULL;
+	char *bufp;
+	uint len = MAX_CLMINFO_BUF_SIZE;
+	uint str_ln;
+	char *tokenp = NULL;
+	int cnt = 0;
+	char *temp_buf = NULL;
+	char tokdelim;
+	int parse_step = 0;
+
+	char *clm_blob_vendor_path = VENDOR_PATH;
+	char *clm_blob_path = NULL;
+	int clm_blob_path_len = 0;
+
+	/* Clears clm_path and translate_custom_table */
+	memset(clm_path, 0, MOD_PARAM_PATHLEN);
+	memset(translate_custom_table, 0, sizeof(translate_custom_table));
+
+	/*
+	 * Read clm info from the .clminfo file
+	 * 1st line : CLM blob file path
+	 * 2nd ~ end of line: Country locales table
+	 */
+	if (dhd_get_download_buffer(dhd, clminfo_path, CLMINFO, &memblock, &len) != 0) {
+		DHD_ERROR(("%s: Cannot open .clminfo file\n", __FUNCTION__));
+		bcmerror = BCME_ERROR;
+		dhd->is_clm_mult_regrev = FALSE;
+		goto out;
+	}
+
+	dhd->is_clm_mult_regrev = TRUE;
+
+	if ((len > 0) && (len < MAX_CLMINFO_BUF_SIZE) && memblock) {
+		/* Found clminfo file. Parsing the file */
+		DHD_INFO(("clminfo file parsing from %s \n", clminfo_path));
+
+		bufp = (char *) memblock;
+		bufp[len] = 0;
+
+		/* clean up the file */
+		len = process_clarification_vars(bufp, len);
+
+		tokenp = bcmstrtok(&bufp, "=", &tokdelim);
+		/* reduce the len of bufp by token byte(1) and ptr length */
+		len -= (strlen(tokenp) + 1);
+
+		if (strncmp(tokenp, "clm_path", 8) != 0) {
+			DHD_ERROR(("%s: Cannot found clm_path\n", __FUNCTION__));
+			bcmerror = BCME_ERROR;
+			goto out;
+		}
+		temp_buf = bcmstrtok(&bufp, ";", &tokdelim);
+		str_ln = strlen(temp_buf);
+		/* read clm_path */
+		strncpy(clm_path, temp_buf, str_ln);
+		len -= (strlen(clm_path) + 1);
+
+		clm_blob_path_len = strlen(clm_path);
+		clm_blob_path = (char *)MALLOCZ(dhd->osh, clm_blob_path_len);
+		if (clm_blob_path == NULL) {
+			bcmerror = BCME_NOMEM;
+			DHD_ERROR(("%s: Failed to allocate memory!\n", __FUNCTION__));
+			goto out;
+		}
+		memset(clm_blob_path, 0, clm_blob_path_len);
+		strncpy(clm_blob_path, clm_path, strlen(clm_path));
+
+		/* Concannate VENDOR_PATH + CLM_PATH */
+		memset(clm_path, 0, MOD_PARAM_PATHLEN);
+		snprintf(clm_path, (int)strlen(clm_blob_vendor_path) + clm_blob_path_len + 1,
+			"%s%s", clm_blob_vendor_path, clm_blob_path);
+		clm_path[strlen(clm_path)] = '\0';
+
+		DHD_INFO(("%s: Found clm_path %s\n", __FUNCTION__, clm_path));
+
+		if (len <= 0) {
+			DHD_ERROR(("%s: Length is invalid\n", __FUNCTION__));
+			bcmerror = BCME_ERROR;
+			goto out;
+		}
+
+		/* reserved relocale map[0] to XZ/11 */
+		memcpy(translate_custom_table[cnt].custom_locale, "XZ", strlen("XZ"));
+		translate_custom_table[cnt].custom_locale_rev = 11;
+		DHD_INFO(("%s: Relocale map - iso_aabrev %s custom locale %s "
+			"custom locale rev %d\n",
+			__FUNCTION__,
+			translate_custom_table[cnt].iso_abbrev,
+			translate_custom_table[cnt].custom_locale,
+			translate_custom_table[cnt].custom_locale_rev));
+
+		cnt++;
+
+		/* start parsing relocale map */
+		do {
+
+			if ((bufp[0] == 0) && (len > 0)) {
+				DHD_ERROR(("%s: First byte is NULL character\n", __FUNCTION__));
+				bcmerror = BCME_ERROR;
+				goto out;
+			}
+			if ((bufp[0] == '=') || (bufp[0] == '/') || (bufp[0] == ';')) {
+				DHD_ERROR(("%s: Data is invalid\n", __FUNCTION__));
+				bcmerror = BCME_ERROR;
+				goto out;
+			}
+
+			/* parsing relocale data */
+			tokenp = bcmstrtok(&bufp, "=/;", &tokdelim);
+			len -= (strlen(tokenp) + 1);
+
+			if ((parse_step == 0) && (tokdelim == '=')) {
+				memcpy(translate_custom_table[cnt].iso_abbrev,
+						tokenp, strlen(tokenp));
+				parse_step++;
+			} else if ((parse_step == 1) && (tokdelim == '/')) {
+				memcpy(translate_custom_table[cnt].custom_locale,
+						tokenp, strlen(tokenp));
+				parse_step++;
+			} else if ((parse_step == 2) && (tokdelim == ';')) {
+				char *str, *endptr = NULL;
+				int locale_rev;
+
+				str = tokenp;
+				locale_rev = (int)strtoul(str, &endptr, 0);
+				if (*endptr != 0) {
+					bcmerror = BCME_ERROR;
+					goto out;
+				}
+
+				translate_custom_table[cnt].custom_locale_rev = locale_rev;
+
+				DHD_INFO(("%s: Relocale map - iso_aabrev %s"
+					" custom locale %s custom locale rev %d\n",
+					__FUNCTION__,
+					translate_custom_table[cnt].iso_abbrev,
+					translate_custom_table[cnt].custom_locale,
+					translate_custom_table[cnt].custom_locale_rev));
+
+				parse_step = 0;
+				cnt++;
+			} else {
+				DHD_ERROR(("%s: CLM info data format is invalid\n", __FUNCTION__));
+				bcmerror = BCME_ERROR;
+				goto out;
+			}
+
+		} while (len > 0);
+	}
+out:
+	if (clm_blob_path) {
+		MFREE(dhd->osh, clm_blob_path, clm_blob_path_len);
+	}
+	if (memblock) {
+		dhd_free_download_buffer(dhd, memblock, MAX_CLMINFO_BUF_SIZE);
+	}
+	if (bcmerror != BCME_OK) {
+		DHD_ERROR(("%s: .clminfo parsing fail!!\n", __FUNCTION__));
+	}
+
+	return bcmerror;
+}
+#endif /* DHD_USE_CLMINFO_PARSER */
 
 void dhd_free_download_buffer(dhd_pub_t	*dhd, void *buffer, int length)
 {

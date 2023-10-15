@@ -323,7 +323,11 @@ typedef enum download_type {
 	FW,
 	NVRAM,
 	CLM_BLOB,
-	TXCAP_BLOB
+	TXCAP_BLOB,
+#if defined(DHD_USE_CLMINFO_PARSER)
+	CLMINFO,
+#endif /* DHD_USE_CLMINFO_PARSER */
+	DOWNLOAD_TYPE_LAST
 } download_type_t;
 
 /* For supporting multiple interfaces */
@@ -392,6 +396,7 @@ enum dhd_op_flags {
 #define MAX_NVRAMBUF_SIZE	(16 * 1024) /* max nvram buf size */
 #define MAX_CLM_BUF_SIZE	(48 * 1024) /* max clm blob size */
 #define MAX_TXCAP_BUF_SIZE	(16 * 1024) /* max txcap blob size */
+#define MAX_CLMINFO_BUF_SIZE    (4 * 1024) /* max clminfo buf size */
 #ifdef DHD_DEBUG
 #define DHD_JOIN_MAX_TIME_DEFAULT 10000 /* ms: Max time out for joining AP */
 #define DHD_SCAN_DEF_TIMEOUT 10000 /* ms: Max time out for scan in progress */
@@ -1417,6 +1422,9 @@ typedef struct dhd_pub {
 #ifdef DHD_PKTDUMP_ROAM
 	void *pktcnts;
 #endif /* DHD_PKTDUMP_ROAM */
+#ifdef DHD_USE_CLMINFO_PARSER
+	bool is_clm_mult_regrev;	/* Checking for CLM single/multiple regrev */
+#endif /* DHD_USE_CLMINFO_PARSER */
 	bool disable_dtim_in_suspend;	/* Disable set bcn_li_dtim in suspend */
 	union {
 		wl_roam_stats_v1_t v1;
@@ -2596,6 +2604,10 @@ extern char fw_path2[MOD_PARAM_PATHLEN];
 #define DHD_EXPORT_CNTL_FILE
 #define DHD_SOFTAP_DUAL_IF_INFO
 #define DHD_SEND_HANG_PRIVCMD_ERRORS
+/* ANDROID P(9.0) and later, always use single nvram file */
+#ifndef DHD_USE_SINGLE_NVRAM_FILE
+#define DHD_USE_SINGLE_NVRAM_FILE
+#endif /* !DHD_USE_SINGLE_NVRAM_FILE */
 #else
 #define PLATFORM_PATH   "/data/misc/conn/"
 #endif /* ANDROID_PLATFORM_VERSION >= 9 */
@@ -2934,6 +2946,10 @@ int dhd_download_blob_cached(dhd_pub_t *dhd, char *file_path,
 
 int dhd_apply_default_txcap(dhd_pub_t *dhd, char *txcap_path);
 int dhd_apply_default_clm(dhd_pub_t *dhd, char *clm_path);
+#ifdef DHD_USE_CLMINFO_PARSER
+int dhd_get_clminfo(dhd_pub_t *dhd, char *clm_path);
+#define NUM_OF_COUNTRYS 150
+#endif /* DHD_USE_CLMINFO_PARSER */
 
 #ifdef SHOW_LOGTRACE
 int dhd_parse_logstrs_file(osl_t *osh, char *raw_fmts, int logstrs_size,
@@ -3418,6 +3434,19 @@ extern void dhd_set_tid_based_on_uid(dhd_pub_t *dhdp, void *pkt);
 #else
 #define FILE_NAME_HAL_TAG	"_hal" /* The tag name concatenated by HAL */
 #endif /* DHD_DUMP_FILE_WRITE_FROM_KERNEL */
+#if defined(DHD_BLOB_EXISTENCE_CHECK) && defined(DHD_USE_CLMINFO_PARSER)
+#define CHECK_IS_BLOB(dhdp)		(dhdp)->is_blob
+#define CHECK_IS_MULT_REGREV(dhdp)	(dhdp)->is_clm_mult_regrev
+#elif defined(DHD_BLOB_EXISTENCE_CHECK) && !defined(DHD_USE_CLMINFO_PARSER)
+#define CHECK_IS_BLOB(dhdp)		(dhdp)->is_blob
+#define CHECK_IS_MULT_REGREV(dhdp)	FALSE
+#elif !defined(DHD_BLOB_EXISTENCE_CHECK) && defined(DHD_USE_CLMINFO_PARSER)
+#define CHECK_IS_BLOB(dhdp)		TRUE
+#define CHECK_IS_MULT_REGREV(dhdp)	(dhdp)->is_clm_mult_regrev
+#else /* !DHD_BLOB_EXISTENCE_CHECK && !DHD_USE_CLMINFO_PARSER */
+#define CHECK_IS_BLOB(dhdp)		FALSE
+#define CHECK_IS_MULT_REGREV(dhdp)	TRUE
+#endif /* DHD_BLOB_EXISTENCE_CHECK && DHD_USE_CLMINFO_PARSER */
 
 #if defined(DISABLE_HE_ENAB) || defined(CUSTOM_CONTROL_HE_ENAB)
 extern int dhd_control_he_enab(dhd_pub_t * dhd, uint8 he_enab);
