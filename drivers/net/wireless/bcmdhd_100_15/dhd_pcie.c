@@ -2204,7 +2204,11 @@ static int concate_revision_bcm4359(dhd_bus_t *bus, char *fw_path, char *nv_path
 	char chipver_tag[10] = {0, };
 #if defined(SUPPORT_MULTIPLE_MODULE_CIS) && defined(USE_CID_CHECK) && \
 	defined(SUPPORT_BCM4359_MIXED_MODULES)
+	char chipver_tag_nv[20] = {0, };
 	int module_type = -1;
+#define VENDOR_MURATA "murata"
+#define VENDOR_WISOL "wisol"
+#define VNAME_DELIM "_"
 #endif /* SUPPORT_MULTIPLE_MODULE_CIS && USE_CID_CHECK && SUPPORT_BCM4359_MIXED_MODULES */
 
 	chip_ver = bus->sih->chiprev;
@@ -2216,10 +2220,33 @@ static int concate_revision_bcm4359(dhd_bus_t *bus, char *fw_path, char *nv_path
 		strncat(chipver_tag, "_b1", strlen("_b1"));
 	} else if (chip_ver == 9) {
 		DHD_ERROR(("----- CHIP 4359 C0 -----\n"));
+#if defined(SUPPORT_MULTIPLE_MODULE_CIS) && defined(USE_CID_CHECK) && \
+	defined(SUPPORT_BCM4359_MIXED_MODULES)
+		if (dhd_check_module(VENDOR_MURATA)) {
+			strncat(chipver_tag_nv, VNAME_DELIM, strlen(VNAME_DELIM));
+			strncat(chipver_tag_nv, VENDOR_MURATA, strlen(VENDOR_MURATA));
+		} else if (dhd_check_module(VENDOR_WISOL)) {
+			strncat(chipver_tag_nv, VNAME_DELIM, strlen(VNAME_DELIM));
+			strncat(chipver_tag_nv, VENDOR_WISOL, strlen(VENDOR_WISOL));
+		}
+		/* In case of SEMCO module, extra vendor string doen not need to add */
+		strncat(chipver_tag_nv, "_c0", strlen("_c0"));
+#endif /* SUPPORT_MULTIPLE_MODULE_CIS && USE_CID_CHECK && SUPPORT_BCM4359_MIXED_MODULES */
 		strncat(chipver_tag, "_c0", strlen("_c0"));
+#if defined(CONFIG_WLAN_GRACE) || defined(CONFIG_SEC_GRACEQLTE_PROJECT) || \
+	defined(CONFIG_SEC_LYKANLTE_PROJECT) || defined(CONFIG_SEC_KELLYLTE_PROJECT)
+		DHD_ERROR(("----- Adding _plus string -----\n"));
+		strncat(chipver_tag, "_plus", strlen("_plus"));
+#if defined(SUPPORT_MULTIPLE_MODULE_CIS) && defined(USE_CID_CHECK) && \
+	defined(SUPPORT_BCM4359_MIXED_MODULES)
+		strncat(chipver_tag_nv, "_plus", strlen("_plus"));
+#endif /* SUPPORT_MULTIPLE_MODULE_CIS && USE_CID_CHECK && SUPPORT_BCM4359_MIXED_MODULES */
+#endif /* CONFIG_WLAN_GRACE || CONFIG_SEC_GRACEQLTE_PROJECT || CONFIG_SEC_LYKANLTE_PROJECT ||
+	* CONFIG_SEC_KELLYLTE_PROJECT
+	*/
 	} else {
 		DHD_ERROR(("----- Unknown chip version, ver=%x -----\n", chip_ver));
-		return -1;
+		return BCME_ERROR;
 	}
 
 #if defined(SUPPORT_MULTIPLE_MODULE_CIS) && defined(USE_CID_CHECK) && \
@@ -2231,6 +2258,13 @@ static int concate_revision_bcm4359(dhd_bus_t *bus, char *fw_path, char *nv_path
 			strcat(fw_path, chipver_tag);
 			break;
 		case BCM4359_MODULE_TYPE_B90S:
+			strcat(fw_path, chipver_tag);
+			if (!(strstr(nv_path, VENDOR_MURATA) || strstr(nv_path, VENDOR_WISOL))) {
+				strcat(nv_path, chipver_tag_nv);
+			} else {
+				strcat(nv_path, chipver_tag);
+			}
+			break;
 		default:
 			/*
 			 * .cid.info file not exist case,
@@ -2248,7 +2282,7 @@ static int concate_revision_bcm4359(dhd_bus_t *bus, char *fw_path, char *nv_path
 	strcat(nv_path, chipver_tag);
 #endif /* SUPPORT_MULTIPLE_MODULE_CIS && USE_CID_CHECK && SUPPORT_BCM4359_MIXED_MODULES */
 
-	return 0;
+	return BCME_OK;
 }
 
 #if defined(USE_CID_CHECK)
