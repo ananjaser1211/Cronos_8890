@@ -44,3 +44,9 @@ sed -i 's/#include "linux\/input-event-codes.h"/#include "linux\/input.h"/' ksud
 
 # Remove unsupported cflags
 sed -i 's/ccflags-y += -Wno-implicit-function-declaration -Wno-strict-prototypes -Wno-int-conversion -Wno-gcc-compat/ccflags-y += -Wno-implicit-function-declaration -Wno-strict-prototypes/' Makefile
+
+# Handle drivers/kernelsu/apk_sign.c:101:14: warning: passing argument 1 of ‘IS_ERR’ makes pointer from integer without a cast
+sed -i 's/if (IS_ERR(ksu_sha256(cert, \*size4, digest))) {/if (IS_ERR((void *)(uintptr_t)ksu_sha256(cert, *size4, digest))) {/g' apk_sign.c
+
+# Handle drivers/kernelsu/core_hook.c:236:44: error: passing argument 2 of ‘ksu_strncpy_from_user_nofault’ makes pointer from integer without a cast
+sed -i 's/ksu_strncpy_from_user_nofault(param, arg3, sizeof(param))/ksu_strncpy_from_user_nofault(param, (const void *)arg3, sizeof(param))/g' core_hook.c
