@@ -139,6 +139,7 @@ typedef enum {
 	PERM_KNOX_ANDROID_SHARED,
 	/* This node is /knox/[userid]/Android/[data|shared]/[package] */
 	PERM_KNOX_ANDROID_PACKAGE,
+
 } perm_t;
 
 struct sdcardfs_sb_info;
@@ -203,6 +204,7 @@ struct sdcardfs_inode_info {
 	struct sdcardfs_inode_data *data;
 
 	/* top folder for ownership */
+	spinlock_t top_lock;
 	struct sdcardfs_inode_data *top_data;
 
 	struct inode vfs_inode;
@@ -223,7 +225,9 @@ struct sdcardfs_mount_options {
 	bool multiuser;
 	bool gid_derivation;
 	bool default_normal;
+	bool unshared_obb;
 	unsigned int reserved_mb;
+	bool nocache;
 };
 
 struct sdcardfs_vfsmount_options {
@@ -382,7 +386,12 @@ static inline struct sdcardfs_inode_data *data_get(
 static inline struct sdcardfs_inode_data *top_data_get(
 		struct sdcardfs_inode_info *info)
 {
-	return data_get(info->top_data);
+	struct sdcardfs_inode_data *top_data;
+
+	spin_lock(&info->top_lock);
+	top_data = data_get(info->top_data);
+	spin_unlock(&info->top_lock);
+	return top_data;
 }
 
 extern void data_release(struct kref *ref);
@@ -404,15 +413,20 @@ static inline void release_own_data(struct sdcardfs_inode_info *info)
 }
 
 static inline void set_top(struct sdcardfs_inode_info *info,
-			struct sdcardfs_inode_data *top)
+			struct sdcardfs_inode_info *top_owner)
 {
-	struct sdcardfs_inode_data *old_top = info->top_data;
+	struct sdcardfs_inode_data *old_top;
+	struct sdcardfs_inode_data *new_top = NULL;
 
-	if (top)
-		data_get(top);
-	info->top_data = top;
+	if (top_owner)
+		new_top = top_data_get(top_owner);
+
+	spin_lock(&info->top_lock);
+	old_top = info->top_data;
+	info->top_data = new_top;
 	if (old_top)
 		data_put(old_top);
+	spin_unlock(&info->top_lock);
 }
 
 static inline int get_gid(struct vfsmount *mnt,
@@ -536,8 +550,7 @@ struct limit_search {
 };
 
 extern void setup_derived_state(struct inode *inode, perm_t perm,
-		userid_t userid, uid_t uid, bool under_android,
-		struct sdcardfs_inode_data *top);
+			userid_t userid, uid_t uid);
 extern void get_derived_permission(struct dentry *parent, struct dentry *dentry);
 extern void get_derived_permission_new(struct dentry *parent, struct dentry *dentry, const struct qstr *name);
 extern void fixup_perms_recursive(struct dentry *dentry, struct limit_search *limit);
@@ -554,13 +567,13 @@ static inline struct dentry *lock_parent(struct dentry *dentry)
 {
 	struct dentry *dir = dget_parent(dentry);
 
-	mutex_lock_nested(&dir->d_inode->i_mutex, I_MUTEX_PARENT);
+	mutex_lock_nested(&d_inode(dir)->i_mutex, I_MUTEX_PARENT);
 	return dir;
 }
 
 static inline void unlock_dir(struct dentry *dir)
 {
-	mutex_unlock(&dir->d_inode->i_mutex);
+	mutex_unlock(&d_inode(dir)->i_mutex);
 	dput(dir);
 }
 
@@ -579,7 +592,7 @@ static inline int prepare_dir(const char *path_s, uid_t uid, gid_t gid, mode_t m
 		goto out_unlock;
 	}
 
-	err = vfs_mkdir2(parent.mnt, parent.dentry->d_inode, dent, mode);
+	err = vfs_mkdir2(parent.mnt, d_inode(parent.dentry), dent, mode);
 	if (err) {
 		if (err == -EEXIST)
 			err = 0;
@@ -589,16 +602,16 @@ static inline int prepare_dir(const char *path_s, uid_t uid, gid_t gid, mode_t m
 	attrs.ia_uid = make_kuid(&init_user_ns, uid);
 	attrs.ia_gid = make_kgid(&init_user_ns, gid);
 	attrs.ia_valid = ATTR_UID | ATTR_GID;
-	mutex_lock(&dent->d_inode->i_mutex);
+	mutex_lock(&d_inode(dent)->i_mutex);
 	notify_change2(parent.mnt, dent, &attrs, NULL);
-	mutex_unlock(&dent->d_inode->i_mutex);
+	mutex_unlock(&d_inode(dent)->i_mutex);
 
 out_dput:
 	dput(dent);
 
 out_unlock:
 	/* parent dentry locked by lookup_create */
-	mutex_unlock(&parent.dentry->d_inode->i_mutex);
+	mutex_unlock(&d_inode(parent.dentry)->i_mutex);
 	path_put(&parent);
 	return err;
 }
@@ -617,7 +630,7 @@ static inline int check_min_free_space(struct dentry *dentry, size_t size, int d
 
 	if (uid_eq(GLOBAL_ROOT_UID, current_fsuid()) ||
 			capable(CAP_SYS_RESOURCE) ||
-			in_group_p(AID_RESERVED_DISK))
+			in_group_p(AID_USE_ROOT_RESERVED))
 		return 1;
 
 	if (sbi->options.reserved_mb) {
@@ -703,15 +716,9 @@ static inline bool str_n_case_eq(const char *s1, const char *s2, size_t len)
 
 static inline bool qstr_case_eq(const struct qstr *q1, const struct qstr *q2)
 {
-	return q1->len == q2->len && str_case_eq(q1->name, q2->name);
+	return q1->len == q2->len && str_n_case_eq(q1->name, q2->name, q2->len);
 }
 
-static inline bool qstr_n_case_eq(const struct qstr *q1, const struct qstr *q2)
-{
-	return q1->len == q2->len && str_n_case_eq(q1->name, q2->name, q1->len);
-}
-
-/* */
 #define QSTR_LITERAL(string) QSTR_INIT(string, sizeof(string)-1)
 
 #endif	/* not _SDCARDFS_H_ */
