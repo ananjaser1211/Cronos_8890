@@ -22,6 +22,10 @@ module_param(wl_polling, int, 0644);
 #include <linux/battery/sec_psb.h>
 #endif
 
+#if defined(CONFIG_PREVENT_SWELLING_BATTERY)
+#include <linux/battery/sec_psb.h>
+#endif
+
 enum {
 	P9220_VOUT_0V = 0,
 	P9220_VOUT_5V,
